@@ -139,6 +139,25 @@ footer b { color:#d3c8c1; }
 .textButton { border:0; background:none; color:var(--muted); text-decoration:underline; margin-top:16px; cursor:pointer; }
 .toast { position:fixed; left:50%; bottom:28px; z-index:100; transform:translateX(-50%); background:#183d30; color:#fff; padding:13px 18px; box-shadow:0 12px 35px #0004; display:flex; align-items:center; gap:10px; font-size:13px; }
 .toast.error { background:#7c2d36; }
+.paymentOverlay { padding:18px; }
+.paymentCard { position:relative; width:min(440px,100%); max-height:94dvh; overflow:auto; background:var(--paper); padding:34px; text-align:center; box-shadow:0 30px 90px #0006; }
+.paymentCard h2 { margin:8px 0 22px; font-size:34px; }
+.paymentQr { display:block; width:min(300px,100%); margin:0 auto 18px; border:1px solid #ded4cd; background:#fff; }
+.paymentAmount { display:flex; align-items:center; justify-content:space-between; padding:18px 0; border-block:1px solid #ddd4cd; }
+.paymentAmount span { color:var(--muted); }
+.paymentAmount b { color:var(--wine); font:700 27px Georgia; }
+.paymentDetails { margin:0; text-align:left; }
+.paymentDetails>div { display:flex; justify-content:space-between; gap:20px; padding:12px 0; border-bottom:1px solid #e5ddd7; }
+.paymentDetails dt { color:var(--muted); }
+.paymentDetails dd { margin:0; font-weight:800; text-align:right; word-break:break-word; }
+.paymentHint { color:var(--muted); font:13px/1.5 Georgia; }
+.paymentWaiting { display:flex; justify-content:center; align-items:center; gap:9px; color:var(--wine); font-weight:800; }
+.paymentWaiting i { width:9px; height:9px; border-radius:50%; background:#d39d37; animation:pulse 1s infinite alternate; }
+.paymentSuccess,.paymentFailure { min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+.paymentSuccess svg { color:#17845e; }
+.paymentSuccess b { color:var(--wine); font:700 36px Georgia; }
+.paymentSuccess span,.paymentFailure p { color:var(--muted); }
+@keyframes pulse { to { opacity:.25; transform:scale(.8); } }
 .scannerPage { min-height:100dvh; display:grid; place-items:center; padding:22px; color:#fff; background:radial-gradient(circle at 50% 15%,#623038,#211617 45%,#100c0d); }
 .scannerCard { width:min(440px,100%); text-align:center; }
 .scannerBrand { width:58px; height:58px; display:grid; place-items:center; margin:0 auto 22px; border:1px solid var(--gold); border-radius:50%; color:var(--gold); font:700 14px Georgia; }

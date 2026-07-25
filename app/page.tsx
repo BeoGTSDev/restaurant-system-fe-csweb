@@ -19,6 +19,18 @@ type Product = {
 };
 type Table = { id: number; name: string; status: string; zone?: { name: string } };
 type CartItem = Product & { quantity: number; note: string };
+type SePayPayment = {
+  reference: string;
+  amount: number;
+  status: "Pending" | "Paid" | "Failed" | "Expired";
+  expiresAt: string;
+  accountNumber: string;
+  accountName: string;
+  qrUrl: string;
+  clientToken: string;
+  failureReason?: string;
+  receiptId?: number;
+};
 type OrderItem = {
   id: number;
   quantity: number;
@@ -69,6 +81,8 @@ export default function Home() {
   const [allergies, setAllergies] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [payment, setPayment] = useState<SePayPayment | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
 
   const notify = (text: string, error = false) => {
@@ -243,6 +257,43 @@ export default function Home() {
     }
   };
 
+  const startPayment = async () => {
+    if (!tableSession) return notify("Scan your table QR code before paying.", true);
+    setPaymentLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/payments/sepay/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-table-session": tableSession },
+        body: JSON.stringify({ tableId }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.message || "Payment could not be created");
+      setPayment(json.data);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Payment could not be created", true);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!payment || payment.status !== "Pending") return;
+    const timer = window.setInterval(async () => {
+      try {
+        const response = await fetch(`${API_BASE}/payments/sepay/${encodeURIComponent(payment.reference)}/status?token=${encodeURIComponent(payment.clientToken)}`);
+        if (!response.ok) return;
+        const json = await response.json();
+        const next = json.data;
+        setPayment((current) => current ? { ...current, ...next } : current);
+        if (next.status === "Paid") {
+          setOrdersOpen(false);
+          notify("Payment confirmed. Thank you.");
+        }
+      } catch { /* keep polling until the payment expires */ }
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [payment]);
+
   if (!tableSession || !table) {
     return <QrScanner
       error={sessionError}
@@ -342,13 +393,37 @@ export default function Home() {
         {!orders.length ? <Empty icon="receipt" title="No active order" text="Items you send to the kitchen will appear here." /> :
           <div className="orderList">{orders.flatMap((order) => order.items.map((item) => <div className="orderItem" key={item.id}>
             <span>{item.quantity}</span><div><h4>{productName(item.product)}</h4><p>{item.note || "No special request"}</p></div><em>{item.status}</em><strong>{money(item.price * item.quantity)}</strong>
-          </div>))}<div className="orderTotal"><span>Current total</span><b>{money(orders.reduce((sum, order) => sum + Number(order.totalPrice), 0))}</b></div></div>}
+          </div>))}<div className="orderTotal"><span>Current total</span><b>{money(orders.reduce((sum, order) => sum + Number(order.totalPrice), 0))}</b></div>
+            <button className="primaryButton full" disabled={paymentLoading} onClick={startPayment}>{paymentLoading ? "Preparing payment..." : "Pay bill online"} <Icon name="chevron" /></button>
+          </div>}
       </Drawer>}
 
+      {payment && <PaymentModal payment={payment} onClose={() => payment.status === "Pending" ? setPayment(null) : window.location.assign(window.location.origin)} />}
       {preferencesOpen && <Preferences selected={allergies} required={!allergyAsked} onClose={() => allergyAsked && setPreferencesOpen(false)} onSave={(items) => { setAllergies(items); setAllergyAsked(true); setPreferencesOpen(false); notify(items.length ? "Allergy alerts are now shown on matching dishes." : "No allergies selected."); }} />}
       {toast && <div className={`toast ${toast.error ? "error" : ""}`}><Icon name={toast.error ? "close" : "check"} />{toast.text}</div>}
     </main>
   );
+}
+
+function PaymentModal({ payment, onClose }: { payment: SePayPayment; onClose: () => void }) {
+  const paid = payment.status === "Paid";
+  const terminal = payment.status === "Failed" || payment.status === "Expired";
+  return <div className="overlay paymentOverlay"><section className="paymentCard">
+    <button className="closeButton" onClick={onClose}><Icon name="close" /></button>
+    <p className="eyebrow">{paid ? "PAYMENT CONFIRMED" : terminal ? "PAYMENT NOT COMPLETED" : "SECURE BANK TRANSFER"}</p>
+    <h2>{paid ? "Thank you." : terminal ? "Please try again." : "Scan to settle your bill"}</h2>
+    {paid ? <div className="paymentSuccess"><Icon name="check" size={38} /><b>{money(payment.amount)}</b><span>Receipt #{payment.receiptId}</span></div> :
+      terminal ? <div className="paymentFailure"><Icon name="close" size={32} /><p>{payment.failureReason || "This payment request is no longer active."}</p></div> :
+        <>
+          {/* The provider generates this QR dynamically; Next image optimization would cache payment-specific URLs. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="paymentQr" src={payment.qrUrl} alt={`Payment QR for ${payment.reference}`} />
+          <div className="paymentAmount"><span>Amount due</span><b>{money(payment.amount)}</b></div>
+          <dl className="paymentDetails"><div><dt>Account</dt><dd>{payment.accountNumber}</dd></div><div><dt>Account name</dt><dd>{payment.accountName}</dd></div><div><dt>Transfer content</dt><dd>{payment.reference}</dd></div></dl>
+          <p className="paymentHint">Transfer the exact amount and keep the content unchanged. This page confirms automatically.</p>
+          <div className="paymentWaiting"><i /> Waiting for payment</div>
+        </>}
+  </section></div>;
 }
 
 function ItemModal({ product, onClose, onAdd }: { product: Product; onClose: () => void; onAdd: (p: Product, q: number, note: string) => void }) {
