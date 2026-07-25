@@ -20,6 +20,10 @@ nav a,nav button { height:100%; border:0; background:none; color:#bdb2ad; text-d
 nav .active { color:#fff; }
 nav .active:after { content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:var(--gold); }
 .headerActions { display:flex; align-items:center; gap:12px; }
+.languageSelect { height:40px; max-width:118px; border:1px solid #ffffff22; border-radius:999px; background:#22191a; color:#f3ece7; padding:0 30px 0 13px; font-size:11px; outline:none; cursor:pointer; }
+.languageSelect option { background:#22191a; color:#fff; }
+.ordersButton { height:42px; padding:0 14px; border-radius:999px; border:1px solid #ffffff22; background:#ffffff09; color:#eee5df; display:flex; align-items:center; gap:8px; cursor:pointer; position:relative; font-size:11px; font-weight:700; }
+.ordersButton em { position:absolute; top:-7px; right:-5px; min-width:20px; height:20px; border-radius:20px; background:var(--gold); color:#21180f; display:grid; place-items:center; font-style:normal; font-size:10px; }
 .tablePicker { position:relative; border:1px solid #ffffff22; border-radius:999px; height:42px; padding:0 15px; display:flex; align-items:center; font-size:12px; }
 .tablePicker select { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; }
 .cartButton { height:42px; padding:0 16px; border-radius:999px; border:0; background:var(--wine); color:#fff; display:flex; align-items:center; gap:9px; cursor:pointer; position:relative; font-weight:700; }
@@ -158,6 +162,36 @@ footer b { color:#d3c8c1; }
 .paymentSuccess b { color:var(--wine); font:700 36px Georgia; }
 .paymentSuccess span,.paymentFailure p { color:var(--muted); }
 @keyframes pulse { to { opacity:.25; transform:scale(.8); } }
+.welcomeScreen { position:fixed; inset:0; z-index:120; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px; text-align:center; color:#fff; background:radial-gradient(circle at 50% 35%,#71383f 0,#2b1a1d 35%,#100b0c 78%); animation:welcomeReveal .7s ease both; }
+.welcomeScreen:before { content:""; position:absolute; inset:0; opacity:.13; background-image:radial-gradient(#e5ca72 1px,transparent 1px); background-size:28px 28px; mask-image:linear-gradient(to bottom,black,transparent 78%); }
+.welcomeGlow { position:absolute; width:330px; height:330px; border-radius:50%; border:1px solid #d8ba6140; box-shadow:0 0 100px #d7a94226,inset 0 0 80px #d7a94217; animation:breathe 2.8s ease-in-out infinite; }
+.welcomeOrnament { width:96px; height:96px; border:1px solid var(--gold); border-radius:50%; display:grid; place-items:center; margin-bottom:32px; color:var(--gold); position:relative; font:700 22px Georgia; animation:ornamentIn .9s .15s ease both; }
+.welcomeOrnament:before,.welcomeOrnament:after { content:""; position:absolute; width:34px; height:1px; background:var(--gold); top:50%; }
+.welcomeOrnament:before { right:110%; }.welcomeOrnament:after { left:110%; }
+.welcomeScreen h1 { position:relative; max-width:800px; margin:16px 0; font-size:clamp(42px,7vw,82px); font-weight:400; letter-spacing:-1.5px; animation:riseIn .7s .25s ease both; }
+.welcomeScreen>p:not(.eyebrow) { position:relative; max-width:570px; color:#c8bcb7; font:clamp(15px,2vw,19px)/1.7 Georgia; animation:riseIn .7s .35s ease both; }
+.welcomeScreen .primaryButton { position:relative; margin-top:30px; animation:riseIn .7s .45s ease both; }
+.welcomeSparkles i { position:absolute; width:4px; height:4px; border-radius:50%; background:var(--gold); animation:sparkle 2.4s infinite; }
+.welcomeSparkles i:nth-child(1){left:18%;top:25%}.welcomeSparkles i:nth-child(2){left:78%;top:19%;animation-delay:.5s}.welcomeSparkles i:nth-child(3){left:88%;top:65%;animation-delay:1s}.welcomeSparkles i:nth-child(4){left:11%;top:72%;animation-delay:1.5s}.welcomeSparkles i:nth-child(5){left:67%;top:82%;animation-delay:.8s}
+@keyframes welcomeReveal { from{opacity:0} } @keyframes ornamentIn { from{opacity:0;transform:scale(.6) rotate(-15deg)} } @keyframes riseIn { from{opacity:0;transform:translateY(20px)} } @keyframes breathe { 50%{transform:scale(1.08);opacity:.7} } @keyframes sparkle { 50%{transform:scale(3);opacity:.2} }
+.checkoutCard { position:relative; width:min(500px,100%); max-height:94dvh; overflow:auto; background:var(--paper); padding:36px; box-shadow:0 30px 90px #0008; }
+.checkoutCard>.closeButton { position:absolute; right:18px; top:18px; }
+.checkoutCard h2 { margin:8px 50px 22px 0; font:400 34px Georgia; }
+.voucherChoice { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.voucherChoice button { min-height:48px; border:1px solid #d8ccc4; background:#fff; color:var(--ink); padding:8px; cursor:pointer; font-weight:700; }
+.voucherChoice button:first-child { background:var(--wine); border-color:var(--wine); color:#fff; }
+.voucherEntry { display:flex; gap:8px; }
+.voucherEntry input { flex:1; min-width:0; height:48px; border:1px solid #d8ccc4; background:#fff; padding:0 14px; text-transform:uppercase; outline-color:var(--wine); }
+.voucherEntry button { border:0; background:var(--wine); color:#fff; padding:0 17px; font-weight:800; cursor:pointer; }
+.addVoucherLink { border:0; background:none; color:var(--wine); padding:8px 0; text-decoration:underline; cursor:pointer; font-weight:700; }
+.checkoutError { color:#9f2f3c; background:#9f2f3c10; border:1px solid #9f2f3c33; padding:10px; font-size:12px; }
+.billBreakdown { margin-top:24px; border-top:1px solid #ded4cd; padding-top:12px; }
+.billBreakdown>div { display:flex; justify-content:space-between; gap:20px; padding:9px 0; color:#655b55; font-size:13px; }
+.billBreakdown b { color:var(--ink); text-align:right; }
+.billBreakdown span small { display:block; margin-top:3px; color:#9a8d85; }
+.billBreakdown .discountLine,.billBreakdown .discountLine b { color:#257157; }
+.billBreakdown .billGrandTotal { margin-top:8px; padding-top:17px; border-top:1px solid #cfc3bb; align-items:end; color:var(--ink); font-weight:800; }
+.billBreakdown .billGrandTotal b { color:var(--wine); font:700 29px Georgia; }
 .scannerPage { min-height:100dvh; display:grid; place-items:center; padding:22px; color:#fff; background:radial-gradient(circle at 50% 15%,#623038,#211617 45%,#100c0d); }
 .scannerCard { width:min(440px,100%); text-align:center; }
 .scannerBrand { width:58px; height:58px; display:grid; place-items:center; margin:0 auto 22px; border:1px solid var(--gold); border-radius:50%; color:var(--gold); font:700 14px Georgia; }
@@ -187,7 +221,10 @@ footer b { color:#d3c8c1; }
   .topbar { height:66px; padding:0 15px; }
   .brand { min-width:0; }
   .brand b { font-size:12px; }
-  .brand small,.tablePicker span,.cartButton span { display:none; }
+  .brand small,.tablePicker span,.cartButton span,.ordersButton span { display:none; }
+  .brand>span:last-child { display:none; }
+  .languageSelect { width:54px; max-width:54px; padding:0 5px; }
+  .ordersButton,.cartButton { width:42px; padding:0; justify-content:center; }
   .tablePicker { width:42px; padding:0; }
   .tablePicker:before { content:"TBL"; margin:auto; font-size:9px; font-weight:800; color:var(--gold); }
   .cartButton { width:42px; padding:0; justify-content:center; }
@@ -213,4 +250,9 @@ footer b { color:#d3c8c1; }
   .modalBody { padding:30px 22px; }
   .modalBody h2 { font-size:30px; }
   .preferences { padding:42px 22px 28px; }
+  .welcomeOrnament { width:78px; height:78px; }
+  .welcomeScreen h1 { font-size:42px; }
+  .checkoutCard { padding:30px 20px; }
+  .checkoutCard h2 { font-size:29px; }
+  .voucherChoice { grid-template-columns:1fr; }
 }

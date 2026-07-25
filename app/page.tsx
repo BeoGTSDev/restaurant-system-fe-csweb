@@ -40,11 +40,43 @@ type OrderItem = {
   product: Product;
 };
 type CustomerOrder = { id: number; totalPrice: number; items: OrderItem[] };
+type BillSnapshot = {
+  subtotal: number;
+  voucherCode?: string | null;
+  voucherDiscountAmount: number;
+  billDiscountPercent: number;
+  billDiscountAmount: number;
+  billDiscountReason?: string | null;
+  discountAmount: number;
+  discountedSubtotal: number;
+  foodVatAmount: number;
+  alcoholVatAmount: number;
+  serviceChargeAmount: number;
+  serviceChargeName?: string | null;
+  totalAmount: number;
+};
+type Language = "en" | "vi" | "fr" | "zh" | "ja" | "ko";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api").replace(/\/$/, "");
 const money = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value || 0));
+  `${new Intl.NumberFormat("vi-VN").format(Number(value || 0))} VND`;
 const productName = (product: Product) => product.displayName || product.name;
+const languages: Array<{ code: Language; label: string }> = [
+  { code: "en", label: "English" },
+  { code: "vi", label: "Tiếng Việt" },
+  { code: "fr", label: "Français" },
+  { code: "zh", label: "中文" },
+  { code: "ja", label: "日本語" },
+  { code: "ko", label: "한국어" },
+];
+const copy: Record<Language, Record<string, string>> = {
+  en: { welcome: "Welcome to Maison Lucas", welcomeText: "Your table is ready. Take a moment, settle in, and let us take care of the rest.", continue: "Begin your experience", menu: "Menu", dietary: "Dietary preferences", myOrder: "My order", cart: "Cart", timeout: "Your session ended after 5 minutes of inactivity. Scan the table QR again to continue.", voucherQuestion: "Do you have a voucher?", noVoucher: "Continue without voucher", apply: "Apply voucher", amountDue: "Amount due", pay: "Pay by bank transfer" },
+  vi: { welcome: "Chào mừng đến Maison Lucas", welcomeText: "Bàn của quý khách đã sẵn sàng. Hãy thư giãn và để chúng tôi chăm sóc trải nghiệm của quý khách.", continue: "Bắt đầu trải nghiệm", menu: "Thực đơn", dietary: "Dị ứng & chế độ ăn", myOrder: "Món đã gọi", cart: "Giỏ món", timeout: "Phiên đã kết thúc sau 5 phút không hoạt động. Vui lòng quét lại mã QR của bàn.", voucherQuestion: "Quý khách có voucher không?", noVoucher: "Tiếp tục không dùng voucher", apply: "Áp dụng voucher", amountDue: "Tổng thanh toán", pay: "Thanh toán chuyển khoản" },
+  fr: { welcome: "Bienvenue chez Maison Lucas", welcomeText: "Votre table est prête. Installez-vous, nous nous occupons du reste.", continue: "Commencer l’expérience", menu: "Menu", dietary: "Allergies", myOrder: "Ma commande", cart: "Panier", timeout: "Votre session a expiré après 5 minutes d’inactivité. Scannez à nouveau le QR.", voucherQuestion: "Avez-vous un bon ?", noVoucher: "Continuer sans bon", apply: "Appliquer", amountDue: "Montant dû", pay: "Payer par virement" },
+  zh: { welcome: "欢迎来到 Maison Lucas", welcomeText: "您的餐桌已经准备好。请放松享受，让我们为您服务。", continue: "开始用餐体验", menu: "菜单", dietary: "过敏与饮食偏好", myOrder: "已点菜品", cart: "购物车", timeout: "由于 5 分钟未操作，会话已结束。请重新扫描餐桌二维码。", voucherQuestion: "您有优惠券吗？", noVoucher: "无优惠券继续", apply: "使用优惠券", amountDue: "应付金额", pay: "银行转账支付" },
+  ja: { welcome: "Maison Lucas へようこそ", welcomeText: "お席の準備が整いました。どうぞゆっくりお過ごしください。", continue: "お食事を始める", menu: "メニュー", dietary: "アレルギー", myOrder: "注文履歴", cart: "カート", timeout: "5分間操作がなかったため終了しました。QRコードを再度読み取ってください。", voucherQuestion: "クーポンはありますか？", noVoucher: "クーポンなしで続行", apply: "適用", amountDue: "お支払い金額", pay: "銀行振込で支払う" },
+  ko: { welcome: "Maison Lucas에 오신 것을 환영합니다", welcomeText: "테이블이 준비되었습니다. 편안히 즐겨 주세요.", continue: "식사 시작하기", menu: "메뉴", dietary: "알레르기", myOrder: "주문 내역", cart: "장바구니", timeout: "5분 동안 활동이 없어 세션이 종료되었습니다. 테이블 QR을 다시 스캔해 주세요.", voucherQuestion: "바우처가 있으신가요?", noVoucher: "바우처 없이 계속", apply: "적용", amountDue: "결제 금액", pay: "계좌이체 결제" },
+};
 
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const paths: Record<string, React.ReactNode> = {
@@ -83,6 +115,10 @@ export default function Home() {
   const [sending, setSending] = useState(false);
   const [payment, setPayment] = useState<SePayPayment | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [bill, setBill] = useState<BillSnapshot | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [language, setLanguage] = useState<Language>("en");
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
 
   const notify = (text: string, error = false) => {
@@ -133,7 +169,8 @@ export default function Home() {
       setSessionError("");
       window.history.replaceState({}, "", `?qr=${encodeURIComponent(qrCode)}`);
       setAllergyAsked(false);
-      setPreferencesOpen(true);
+      setWelcomeOpen(true);
+      setPreferencesOpen(false);
     } catch (error) {
       setSessionError(error instanceof Error ? error.message : "Unable to join this table.");
     }
@@ -150,6 +187,17 @@ export default function Home() {
       setOrders(json.data?.orders || []);
     } catch { /* keep the last visible state */ }
   }, [tableId, tableSession]);
+
+  const loadBill = useCallback(async () => {
+    if (!tableSession) return null;
+    const response = await fetch(`${API_BASE}/payments/customer/bill`, {
+      headers: { "x-table-session": tableSession },
+    });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.message || "Unable to load your bill.");
+    setBill(json.data);
+    return json.data as BillSnapshot;
+  }, [tableSession]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(loadMenu, 0);
@@ -168,6 +216,35 @@ export default function Home() {
       window.clearInterval(timer);
     };
   }, [tableId, tableSession, loadOrders]);
+
+  useEffect(() => {
+    if (!tableSession) return;
+    let timer = 0;
+    const expire = () => {
+      setTableSession("");
+      setTable(null);
+      setTableId(null);
+      setCart([]);
+      setOrders([]);
+      setBill(null);
+      setPayment(null);
+      setCheckoutOpen(false);
+      setWelcomeOpen(false);
+      window.history.replaceState({}, "", window.location.pathname);
+      setSessionError(copy[language].timeout);
+    };
+    const reset = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(expire, 5 * 60 * 1000);
+    };
+    const events = ["pointerdown", "keydown", "touchstart", "scroll"];
+    events.forEach(event => window.addEventListener(event, reset, { passive: true }));
+    reset();
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach(event => window.removeEventListener(event, reset));
+    };
+  }, [tableSession, language]);
 
   const visibleProducts = useMemo(() => products.filter((product) => {
     if (product.status === "Disabled") return false;
@@ -276,6 +353,28 @@ export default function Home() {
     }
   };
 
+  const openCheckout = async () => {
+    try {
+      await loadBill();
+      setOrdersOpen(false);
+      setCheckoutOpen(true);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Unable to load your bill.", true);
+    }
+  };
+
+  const applyVoucher = async (code: string) => {
+    const response = await fetch(`${API_BASE}/payments/customer/voucher`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-table-session": tableSession },
+      body: JSON.stringify({ code }),
+    });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.message || "Voucher could not be applied.");
+    setBill(json.data);
+    notify(`Voucher ${json.data.voucherCode} applied.`);
+  };
+
   useEffect(() => {
     if (!payment || payment.status !== "Pending") return;
     const timer = window.setInterval(async () => {
@@ -310,14 +409,21 @@ export default function Home() {
           <span><b>MAISON LUCAS</b><small>Restaurant & Wine</small></span>
         </a>
         <nav>
-          <a className="active" href="#menu">Menu</a>
-          <button onClick={() => setPreferencesOpen(true)}>Dietary preferences</button>
-          <button onClick={() => { setOrdersOpen(true); loadOrders(); }}>My order</button>
+          <a className="active" href="#menu">{copy[language].menu}</a>
+          <button onClick={() => setPreferencesOpen(true)}>{copy[language].dietary}</button>
+          <button onClick={() => { setOrdersOpen(true); loadOrders(); }}>{copy[language].myOrder}</button>
         </nav>
         <div className="headerActions">
+          <select className="languageSelect" value={language} onChange={event => setLanguage(event.target.value as Language)} aria-label="Language">
+            {languages.map(item => <option value={item.code} key={item.code}>{item.label}</option>)}
+          </select>
           <div className="tablePicker"><span>{table ? table.name : sessionError ? "QR required" : "Joining table..."}</span></div>
+          <button className="ordersButton" onClick={() => { setOrdersOpen(true); loadOrders(); }} aria-label={copy[language].myOrder}>
+            <Icon name="receipt" /><span>{copy[language].myOrder}</span>
+            {orders.length > 0 && <em>{orders.reduce((sum, order) => sum + order.items.length, 0)}</em>}
+          </button>
           <button className="cartButton" onClick={() => setCartOpen(true)} aria-label="Open cart">
-            <Icon name="cart" /><span>Cart</span>{cartCount > 0 && <em>{cartCount}</em>}
+            <Icon name="cart" /><span>{copy[language].cart}</span>{cartCount > 0 && <em>{cartCount}</em>}
           </button>
         </div>
       </header>
@@ -394,15 +500,96 @@ export default function Home() {
           <div className="orderList">{orders.flatMap((order) => order.items.map((item) => <div className="orderItem" key={item.id}>
             <span>{item.quantity}</span><div><h4>{productName(item.product)}</h4><p>{item.note || "No special request"}</p></div><em>{item.status}</em><strong>{money(item.price * item.quantity)}</strong>
           </div>))}<div className="orderTotal"><span>Current total</span><b>{money(orders.reduce((sum, order) => sum + Number(order.totalPrice), 0))}</b></div>
-            <button className="primaryButton full" disabled={paymentLoading} onClick={startPayment}>{paymentLoading ? "Preparing payment..." : "Pay bill online"} <Icon name="chevron" /></button>
+            <button className="primaryButton full" disabled={paymentLoading} onClick={openCheckout}>{paymentLoading ? "Preparing payment..." : copy[language].pay} <Icon name="chevron" /></button>
           </div>}
       </Drawer>}
 
+      {welcomeOpen && <Welcome tableName={table.name} language={language} onContinue={() => { setWelcomeOpen(false); setPreferencesOpen(true); }} />}
+      {checkoutOpen && bill && <CheckoutModal bill={bill} language={language} loading={paymentLoading} onApplyVoucher={applyVoucher} onPay={startPayment} onClose={() => setCheckoutOpen(false)} />}
       {payment && <PaymentModal payment={payment} onClose={() => payment.status === "Pending" ? setPayment(null) : window.location.assign(window.location.origin)} />}
       {preferencesOpen && <Preferences selected={allergies} required={!allergyAsked} onClose={() => allergyAsked && setPreferencesOpen(false)} onSave={(items) => { setAllergies(items); setAllergyAsked(true); setPreferencesOpen(false); notify(items.length ? "Allergy alerts are now shown on matching dishes." : "No allergies selected."); }} />}
       {toast && <div className={`toast ${toast.error ? "error" : ""}`}><Icon name={toast.error ? "close" : "check"} />{toast.text}</div>}
     </main>
   );
+}
+
+function Welcome({ tableName, language, onContinue }: { tableName: string; language: Language; onContinue: () => void }) {
+  const text = copy[language];
+  return <div className="welcomeScreen">
+    <div className="welcomeGlow" />
+    <div className="welcomeOrnament"><span>ML</span></div>
+    <p className="eyebrow">MAISON LUCAS · {tableName}</p>
+    <h1>{text.welcome}</h1>
+    <p>{text.welcomeText}</p>
+    <button className="primaryButton" onClick={onContinue}>{text.continue}<Icon name="chevron" /></button>
+    <div className="welcomeSparkles" aria-hidden><i /><i /><i /><i /><i /></div>
+  </div>;
+}
+
+function CheckoutModal({
+  bill,
+  language,
+  loading,
+  onApplyVoucher,
+  onPay,
+  onClose,
+}: {
+  bill: BillSnapshot;
+  language: Language;
+  loading: boolean;
+  onApplyVoucher: (code: string) => Promise<void>;
+  onPay: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [voucherCode, setVoucherCode] = useState(bill.voucherCode || "");
+  const [showVoucher, setShowVoucher] = useState(Boolean(bill.voucherCode));
+  const [voucherDecided, setVoucherDecided] = useState(Boolean(bill.voucherCode));
+  const [applying, setApplying] = useState(false);
+  const [error, setError] = useState("");
+  const text = copy[language];
+  const apply = async () => {
+    if (!voucherCode.trim()) return;
+    setApplying(true);
+    setError("");
+    try {
+      await onApplyVoucher(voucherCode.trim().toUpperCase());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Voucher could not be applied.");
+    } finally {
+      setApplying(false);
+    }
+  };
+  return <div className="overlay checkoutOverlay" onMouseDown={event => event.target === event.currentTarget && onClose()}>
+    <section className="checkoutCard">
+      <button className="closeButton" onClick={onClose}><Icon name="close" /></button>
+      <p className="eyebrow">TABLE BILL · SECURE CHECKOUT</p>
+      <h2>{text.voucherQuestion}</h2>
+      {!voucherDecided ? <div className="voucherChoice">
+        <button onClick={() => { setShowVoucher(true); setVoucherDecided(true); }}>I have a voucher</button>
+        <button onClick={() => { setShowVoucher(false); setVoucherDecided(true); }}>{text.noVoucher}</button>
+      </div> : showVoucher ? <div className="voucherEntry">
+        <input value={voucherCode} onChange={event => setVoucherCode(event.target.value.toUpperCase())} placeholder="DR10001 / FD50002" />
+        <button disabled={applying} onClick={apply}>{applying ? "..." : text.apply}</button>
+      </div> : <button className="addVoucherLink" onClick={() => setShowVoucher(true)}>+ Add voucher</button>}
+      {error && <p className="checkoutError">{error}</p>}
+      <BillBreakdown bill={bill} amountLabel={text.amountDue} />
+      <button className="primaryButton full" disabled={loading} onClick={onPay}>
+        {loading ? "Preparing secure payment..." : text.pay}<Icon name="chevron" />
+      </button>
+    </section>
+  </div>;
+}
+
+function BillBreakdown({ bill, amountLabel }: { bill: BillSnapshot; amountLabel: string }) {
+  return <div className="billBreakdown">
+    <div><span>Subtotal</span><b>{money(bill.subtotal)}</b></div>
+    {bill.voucherDiscountAmount > 0 && <div className="discountLine"><span>Voucher {bill.voucherCode}</span><b>− {money(bill.voucherDiscountAmount)}</b></div>}
+    {bill.billDiscountAmount > 0 && <div className="discountLine"><span>Service recovery ({bill.billDiscountPercent}%)<small>{bill.billDiscountReason}</small></span><b>− {money(bill.billDiscountAmount)}</b></div>}
+    {bill.foodVatAmount > 0 && <div><span>Food VAT</span><b>{money(bill.foodVatAmount)}</b></div>}
+    {bill.alcoholVatAmount > 0 && <div><span>Alcohol VAT</span><b>{money(bill.alcoholVatAmount)}</b></div>}
+    {bill.serviceChargeAmount > 0 && <div><span>{bill.serviceChargeName || "Service charge"}</span><b>{money(bill.serviceChargeAmount)}</b></div>}
+    <div className="billGrandTotal"><span>{amountLabel}</span><b>{money(bill.totalAmount)}</b></div>
+  </div>;
 }
 
 function PaymentModal({ payment, onClose }: { payment: SePayPayment; onClose: () => void }) {
