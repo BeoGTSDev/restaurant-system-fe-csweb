@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Category = { id: number; name: string };
 type Product = {
@@ -14,6 +14,7 @@ type Product = {
   category?: { name: string };
   status: string;
   remainingQty?: number | null;
+  allergenIngredients?: string[];
 };
 type Table = { id: number; name: string; status: string; zone?: { name: string } };
 type CartItem = Product & { quantity: number; note: string };
@@ -51,8 +52,10 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [tables, setTables] = useState<Table[]>([]);
+  const [table, setTable] = useState<Table | null>(null);
   const [tableId, setTableId] = useState<number | null>(null);
+  const [tableSession, setTableSession] = useState("");
+  const [sessionError, setSessionError] = useState("");
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -60,6 +63,7 @@ export default function Home() {
   const [cartOpen, setCartOpen] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [allergyAsked, setAllergyAsked] = useState(false);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [allergies, setAllergies] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,22 +77,16 @@ export default function Home() {
 
   const loadMenu = useCallback(async () => {
     try {
-      const [productResponse, categoryResponse, tableResponse] = await Promise.all([
-        fetch(`${API_BASE}/products`),
+      const [productResponse, categoryResponse] = await Promise.all([
+        fetch(`${API_BASE}/products/public`),
         fetch(`${API_BASE}/categories`),
-        fetch(`${API_BASE}/tables`),
       ]);
-      if (!productResponse.ok || !categoryResponse.ok || !tableResponse.ok) throw new Error("Unable to load menu");
-      const [productJson, categoryJson, tableJson] = await Promise.all([
-        productResponse.json(), categoryResponse.json(), tableResponse.json(),
+      if (!productResponse.ok || !categoryResponse.ok) throw new Error("Unable to load menu");
+      const [productJson, categoryJson] = await Promise.all([
+        productResponse.json(), categoryResponse.json(),
       ]);
       setProducts(productJson.data || []);
       setCategories(categoryJson.data || []);
-      setTables(tableJson.data || []);
-      const fromUrl = Number(new URLSearchParams(window.location.search).get("table"));
-      const stored = Number(window.localStorage.getItem("customer-table-id"));
-      const chosen = [fromUrl, stored].find((id) => id && (tableJson.data || []).some((t: Table) => t.id === id));
-      if (chosen) setTableId(chosen);
     } catch {
       notify("Could not connect to the restaurant server.", true);
     } finally {
@@ -96,42 +94,90 @@ export default function Home() {
     }
   }, []);
 
+  const joinTable = useCallback(async (scannedValue?: string) => {
+    const params = new URLSearchParams(window.location.search);
+    let qrCode = scannedValue || params.get("qr") || "";
+    if (qrCode.includes("?")) {
+      try { qrCode = new URL(qrCode).searchParams.get("qr") || ""; } catch { /* scanner may return the raw table code */ }
+    }
+    if (!qrCode) {
+      setSessionError("");
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE}/tables/customer/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qrCode }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.message || "This table is not open.");
+      setTable(json.data.table);
+      setTableId(json.data.table.id);
+      setTableSession(json.data.token);
+      setSessionError("");
+      window.history.replaceState({}, "", `?qr=${encodeURIComponent(qrCode)}`);
+      setAllergyAsked(false);
+      setPreferencesOpen(true);
+    } catch (error) {
+      setSessionError(error instanceof Error ? error.message : "Unable to join this table.");
+    }
+  }, []);
+
   const loadOrders = useCallback(async () => {
     if (!tableId) return;
     try {
-      const response = await fetch(`${API_BASE}/orders/customer/table/${tableId}`);
+      const response = await fetch(`${API_BASE}/orders/customer/table/${tableId}`, {
+        headers: { "x-table-session": tableSession },
+      });
       if (!response.ok) return;
       const json = await response.json();
       setOrders(json.data?.orders || []);
     } catch { /* keep the last visible state */ }
-  }, [tableId]);
+  }, [tableId, tableSession]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(loadMenu, 0);
     return () => window.clearTimeout(initialLoad);
   }, [loadMenu]);
   useEffect(() => {
-    if (!tableId) return;
-    window.localStorage.setItem("customer-table-id", String(tableId));
+    const initialJoin = window.setTimeout(joinTable, 0);
+    return () => window.clearTimeout(initialJoin);
+  }, [joinTable]);
+  useEffect(() => {
+    if (!tableId || !tableSession) return;
     const initialSync = window.setTimeout(loadOrders, 0);
     const timer = window.setInterval(loadOrders, 5000);
     return () => {
       window.clearTimeout(initialSync);
       window.clearInterval(timer);
     };
-  }, [tableId, loadOrders]);
+  }, [tableId, tableSession, loadOrders]);
 
   const visibleProducts = useMemo(() => products.filter((product) => {
     if (product.status === "Disabled") return false;
     const matchesCategory = category === "all" || product.categoryId === Number(category);
     const text = `${productName(product)} ${product.description || ""}`.toLowerCase();
     return matchesCategory && text.includes(query.toLowerCase());
+  }).sort((a, b) => {
+    const rank = (item: Product) => item.status === "Out of Stock" || item.remainingQty === 0 ? 2 : item.remainingQty != null ? 1 : 0;
+    return rank(a) - rank(b) || productName(a).localeCompare(productName(b));
   }), [products, category, query]);
+
+  const matchingAllergies = useCallback((product: Product) => {
+    const ingredientText = (product.allergenIngredients || []).join(" ").toLowerCase();
+    const aliases: Record<string, string[]> = {
+      Dairy: ["milk", "cream", "cheese", "butter", "burrata", "parmesan"],
+      Gluten: ["wheat", "flour", "bread", "pasta", "noodle"],
+      Nuts: ["nut", "almond", "cashew", "peanut", "walnut", "pistachio"],
+      Shellfish: ["shrimp", "prawn", "crab", "lobster", "clam", "mussel", "oyster", "calamari"],
+      Eggs: ["egg", "mayonnaise"],
+    };
+    return allergies.filter(allergy => (aliases[allergy] || []).some(term => ingredientText.includes(term)));
+  }, [allergies]);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
-  const table = tables.find((item) => item.id === tableId);
-
   const add = (product: Product, quantity = 1, note = "") => {
     if (product.status !== "In Stock" || product.remainingQty === 0) {
       notify(`${productName(product)} is sold out today.`, true);
@@ -166,13 +212,13 @@ export default function Home() {
   };
 
   const placeOrder = async () => {
-    if (!tableId) return notify("Select your table before ordering.", true);
+    if (!tableId || !tableSession) return notify("Scan your table QR code before ordering.", true);
     if (!cart.length) return;
     setSending(true);
     try {
       const response = await fetch(`${API_BASE}/orders/customer`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-table-session": tableSession },
         body: JSON.stringify({
           tableId,
           items: cart.map((item) => ({
@@ -196,6 +242,14 @@ export default function Home() {
     }
   };
 
+  if (!tableSession || !table) {
+    return <QrScanner
+      error={sessionError}
+      onScan={value => joinTable(value)}
+      onRetry={() => setSessionError("")}
+    />;
+  }
+
   return (
     <main>
       <header className="topbar">
@@ -209,13 +263,7 @@ export default function Home() {
           <button onClick={() => { setOrdersOpen(true); loadOrders(); }}>My order</button>
         </nav>
         <div className="headerActions">
-          <label className="tablePicker">
-            <span>{table ? table.name : "Select table"}</span>
-            <select value={tableId || ""} onChange={(event) => setTableId(Number(event.target.value) || null)}>
-              <option value="">Choose your table</option>
-              {tables.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.zone?.name || "Dining room"}</option>)}
-            </select>
-          </label>
+          <div className="tablePicker"><span>{table ? table.name : sessionError ? "QR required" : "Joining table..."}</span></div>
           <button className="cartButton" onClick={() => setCartOpen(true)} aria-label="Open cart">
             <Icon name="cart" /><span>Cart</span>{cartCount > 0 && <em>{cartCount}</em>}
           </button>
@@ -249,11 +297,13 @@ export default function Home() {
           <div className="menuGrid">
             {visibleProducts.map((product, index) => {
               const soldOut = product.status !== "In Stock" || product.remainingQty === 0;
+              const allergyMatches = matchingAllergies(product);
               return <article className={`dishCard ${soldOut ? "soldOut" : ""}`} key={product.id} onClick={() => !soldOut && setSelected(product)}>
                 <div className={`dishImage tone${index % 6}`} style={product.imageUrl ? { backgroundImage: `url("${product.imageUrl}")` } : undefined}>
                   {!product.imageUrl && <span>{["✦","❦","◇","✧","◈","❧"][index % 6]}</span>}
                   {product.remainingQty != null && <strong className="stockBadge">{product.remainingQty}<small>LEFT</small></strong>}
                   {soldOut && <span className="soldBadge">SOLD OUT TODAY</span>}
+                  {!!allergyMatches.length && <span className="allergyRibbon">ALLERGY · {allergyMatches.join(" / ")}</span>}
                 </div>
                 <div className="dishBody">
                   <p className="dishCategory">{product.category?.name || "Chef's selection"}</p>
@@ -294,7 +344,7 @@ export default function Home() {
           </div>))}<div className="orderTotal"><span>Current total</span><b>{money(orders.reduce((sum, order) => sum + Number(order.totalPrice), 0))}</b></div></div>}
       </Drawer>}
 
-      {preferencesOpen && <Preferences selected={allergies} onClose={() => setPreferencesOpen(false)} onSave={(items) => { setAllergies(items); setPreferencesOpen(false); notify("Dietary preferences saved."); }} />}
+      {preferencesOpen && <Preferences selected={allergies} required={!allergyAsked} onClose={() => allergyAsked && setPreferencesOpen(false)} onSave={(items) => { setAllergies(items); setAllergyAsked(true); setPreferencesOpen(false); notify(items.length ? "Allergy alerts are now shown on matching dishes." : "No allergies selected."); }} />}
       {toast && <div className={`toast ${toast.error ? "error" : ""}`}><Icon name={toast.error ? "close" : "check"} />{toast.text}</div>}
     </main>
   );
@@ -327,13 +377,80 @@ function Empty({ icon, title, text }: { icon: string; title: string; text: strin
   return <div className="empty"><span><Icon name={icon} size={32} /></span><h3>{title}</h3><p>{text}</p></div>;
 }
 
-function Preferences({ selected, onClose, onSave }: { selected: string[]; onClose: () => void; onSave: (items: string[]) => void }) {
+function Preferences({ selected, required, onClose, onSave }: { selected: string[]; required?: boolean; onClose: () => void; onSave: (items: string[]) => void }) {
   const choices = ["Dairy", "Gluten", "Nuts", "Shellfish", "Eggs", "Vegan", "Vegetarian"];
   const [items, setItems] = useState(selected);
   return <div className="overlay"><div className="preferences">
-    <button className="closeButton" onClick={onClose}><Icon name="close" /></button><span className="preferenceIcon"><Icon name="leaf" size={32} /></span>
+    {!required && <button className="closeButton" onClick={onClose}><Icon name="close" /></button>}<span className="preferenceIcon"><Icon name="leaf" size={32} /></span>
     <p className="eyebrow">BEFORE YOU ORDER</p><h2>Let us take care of you.</h2><p>Select any allergies or dietary preferences. We&apos;ll attach them to every item in your order.</p>
     <div className="choiceGrid">{choices.map((choice) => <button key={choice} className={items.includes(choice) ? "active" : ""} onClick={() => setItems((list) => list.includes(choice) ? list.filter((x) => x !== choice) : [...list, choice])}>{items.includes(choice) && <Icon name="check" size={16} />}{choice}</button>)}</div>
     <button className="primaryButton full" onClick={() => onSave(items)}>Save preferences</button><button className="textButton" onClick={() => onSave([])}>No dietary preferences</button>
   </div></div>;
+}
+
+function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: string) => void; onRetry: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [cameraError, setCameraError] = useState("");
+  const [manualCode, setManualCode] = useState("");
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    let timer = 0;
+    let stopped = false;
+    const start = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        const Detector = (window as unknown as { BarcodeDetector?: new (options: { formats: string[] }) => { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
+        if (!Detector) {
+          setCameraError("Automatic QR recognition is not supported by this browser. Open the QR link with your phone camera.");
+          return;
+        }
+        const detector = new Detector({ formats: ["qr_code"] });
+        const scan = async () => {
+          if (stopped || !videoRef.current) return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            if (codes[0]?.rawValue) {
+              stopped = true;
+              onScan(codes[0].rawValue);
+              return;
+            }
+          } catch { /* continue scanning the next frame */ }
+          timer = window.setTimeout(scan, 250);
+        };
+        scan();
+      } catch {
+        setCameraError("Camera access is required to scan your table QR code.");
+      }
+    };
+    start();
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      stream?.getTracks().forEach(track => track.stop());
+    };
+  }, [onScan]);
+
+  return <main className="scannerPage">
+    <section className="scannerCard">
+      <div className="scannerBrand">ML</div>
+      <p className="eyebrow">MAISON LUCAS · TABLE ORDERING</p>
+      <h1>Scan your table</h1>
+      <p>Your table must be opened by our team before the QR can start an ordering session.</p>
+      <div className="cameraFrame">
+        <video ref={videoRef} muted playsInline />
+        <div className="scanCorners" />
+        <span>Place the table QR inside the frame</span>
+      </div>
+      {(error || cameraError) && <div className="scanError"><b>{error || cameraError}</b>{error && <button onClick={onRetry}>Scan again</button>}</div>}
+      <details>
+        <summary>Enter table code manually</summary>
+        <div className="manualQr"><input value={manualCode} onChange={event => setManualCode(event.target.value)} placeholder="Table QR code" /><button onClick={() => manualCode.trim() && onScan(manualCode.trim())}>Join table</button></div>
+      </details>
+    </section>
+  </main>;
 }
