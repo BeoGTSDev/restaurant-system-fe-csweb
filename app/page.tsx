@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import jsQR from "jsqr";
 
 type Category = { id: number; name: string };
 type Product = {
@@ -405,18 +406,29 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
           await videoRef.current.play();
         }
         const Detector = (window as unknown as { BarcodeDetector?: new (options: { formats: string[] }) => { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
-        if (!Detector) {
-          setCameraError("Automatic QR recognition is not supported by this browser. Open the QR link with your phone camera.");
-          return;
-        }
-        const detector = new Detector({ formats: ["qr_code"] });
+        const detector = Detector ? new Detector({ formats: ["qr_code"] }) : null;
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d", { willReadFrequently: true });
         const scan = async () => {
           if (stopped || !videoRef.current) return;
           try {
-            const codes = await detector.detect(videoRef.current);
-            if (codes[0]?.rawValue) {
+            let value = "";
+            if (detector) {
+              const codes = await detector.detect(videoRef.current);
+              value = codes[0]?.rawValue || "";
+            } else if (context && videoRef.current.videoWidth && videoRef.current.videoHeight) {
+              const video = videoRef.current;
+              const maxWidth = 720;
+              const scale = Math.min(1, maxWidth / video.videoWidth);
+              canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+              canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+              context.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const frame = context.getImageData(0, 0, canvas.width, canvas.height);
+              value = jsQR(frame.data, frame.width, frame.height, { inversionAttempts: "attemptBoth" })?.data || "";
+            }
+            if (value) {
               stopped = true;
-              onScan(codes[0].rawValue);
+              onScan(value);
               return;
             }
           } catch { /* continue scanning the next frame */ }
