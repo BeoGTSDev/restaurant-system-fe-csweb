@@ -111,6 +111,11 @@ footer b { color:#d3c8c1; }
 .drawerHead { padding:30px; border-bottom:1px solid #ddd4cd; display:flex; justify-content:space-between; align-items:center; }
 .drawerHead p { margin:0; color:var(--wine); text-transform:uppercase; font-size:10px; font-weight:800; letter-spacing:1.3px; }
 .drawerHead h2 { margin:4px 0 0; }
+.serviceTabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:14px 22px; border-bottom:1px solid #ddd4cd; background:#f4eee9; }
+.serviceTabs button { min-height:48px; border:1px solid #d7cbc4; background:#fff; color:#71645d; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; font-weight:800; }
+.serviceTabs button.active { background:var(--wine); border-color:var(--wine); color:#fff; box-shadow:0 8px 22px #6f30392b; }
+.serviceTabs em { min-width:22px; height:22px; border-radius:20px; background:#e8dfd8; color:#4f423c; display:grid; place-items:center; font-size:10px; font-style:normal; }
+.serviceTabs button.active em { background:#ffffff25; color:#fff; }
 .cartList,.orderList { padding:10px 30px; }
 .cartItem,.orderItem { padding:19px 0; border-bottom:1px solid #e1d9d3; display:grid; grid-template-columns:1fr auto auto; gap:14px; align-items:center; }
 .cartItem h4,.orderItem h4 { margin:0 0 5px; font:500 17px Georgia; }
@@ -171,6 +176,9 @@ footer b { color:#d3c8c1; }
 .welcomeScreen h1 { position:relative; max-width:800px; margin:16px 0; font-size:clamp(42px,7vw,82px); font-weight:400; letter-spacing:-1.5px; animation:riseIn .7s .25s ease both; }
 .welcomeScreen>p:not(.eyebrow) { position:relative; max-width:570px; color:#c8bcb7; font:clamp(15px,2vw,19px)/1.7 Georgia; animation:riseIn .7s .35s ease both; }
 .welcomeScreen .primaryButton { position:relative; margin-top:30px; animation:riseIn .7s .45s ease both; }
+.welcomeLanguages { position:relative; width:min(650px,100%); margin-top:24px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; animation:riseIn .7s .4s ease both; }
+.welcomeLanguages button { min-width:118px; min-height:40px; padding:7px 12px; border:1px solid #ffffff2c; border-radius:999px; background:#ffffff0b; color:#d7cbc6; cursor:pointer; font-weight:700; }
+.welcomeLanguages button.active { border-color:var(--gold); background:#d2b5571b; color:#f4d978; box-shadow:0 0 24px #d2b55720; }
 .welcomeSparkles i { position:absolute; width:4px; height:4px; border-radius:50%; background:var(--gold); animation:sparkle 2.4s infinite; }
 .welcomeSparkles i:nth-child(1){left:18%;top:25%}.welcomeSparkles i:nth-child(2){left:78%;top:19%;animation-delay:.5s}.welcomeSparkles i:nth-child(3){left:88%;top:65%;animation-delay:1s}.welcomeSparkles i:nth-child(4){left:11%;top:72%;animation-delay:1.5s}.welcomeSparkles i:nth-child(5){left:67%;top:82%;animation-delay:.8s}
 @keyframes welcomeReveal { from{opacity:0} } @keyframes ornamentIn { from{opacity:0;transform:scale(.6) rotate(-15deg)} } @keyframes riseIn { from{opacity:0;transform:translateY(20px)} } @keyframes breathe { 50%{transform:scale(1.08);opacity:.7} } @keyframes sparkle { 50%{transform:scale(3);opacity:.2} }
@@ -252,6 +260,7 @@ footer b { color:#d3c8c1; }
   .preferences { padding:42px 22px 28px; }
   .welcomeOrnament { width:78px; height:78px; }
   .welcomeScreen h1 { font-size:42px; }
+  .welcomeLanguages button { min-width:calc(50% - 5px); }
   .checkoutCard { padding:30px 20px; }
   .checkoutCard h2 { font-size:29px; }
   .voucherChoice { grid-template-columns:1fr; }

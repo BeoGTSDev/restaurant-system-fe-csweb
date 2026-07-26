@@ -17,7 +17,7 @@ type Product = {
   remainingQty?: number | null;
   allergenIngredients?: string[];
 };
-type Table = { id: number; name: string; status: string; zone?: { name: string } };
+type Table = { id: number; name: string; status: string; zone?: { name: string }; guestLanguage?: Language | null; guestAllergies?: string[] };
 type CartItem = Product & { quantity: number; note: string };
 type SePayPayment = {
   reference: string;
@@ -55,13 +55,16 @@ type BillSnapshot = {
   serviceChargeName?: string | null;
   totalAmount: number;
 };
-type Language = "en" | "vi" | "fr" | "zh" | "ja" | "ko";
+type Language = "en" | "vi" | "fr" | "zh" | "ja" | "ko" | "th" | "ru";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api").replace(/\/$/, "");
-const money = (value: number) =>
-  `${new Intl.NumberFormat("vi-VN").format(Number(value || 0))} VND`;
+const locales: Record<Language, string> = { en: "en-US", vi: "vi-VN", fr: "fr-FR", zh: "zh-CN", ja: "ja-JP", ko: "ko-KR", th: "th-TH", ru: "ru-RU" };
+const money = (value: number, language: Language = "en") =>
+  new Intl.NumberFormat(locales[language], { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value || 0));
 const productName = (product: Product) => product.displayName || product.name;
 const languages: Array<{ code: Language; label: string }> = [
+  { code: "th", label: "ไทย" },
+  { code: "ru", label: "Русский" },
   { code: "en", label: "English" },
   { code: "vi", label: "Tiếng Việt" },
   { code: "fr", label: "Français" },
@@ -76,6 +79,18 @@ const copy: Record<Language, Record<string, string>> = {
   zh: { welcome: "欢迎来到 Maison Lucas", welcomeText: "您的餐桌已经准备好。请放松享受，让我们为您服务。", continue: "开始用餐体验", menu: "菜单", dietary: "过敏与饮食偏好", myOrder: "已点菜品", cart: "购物车", timeout: "由于 5 分钟未操作，会话已结束。请重新扫描餐桌二维码。", voucherQuestion: "您有优惠券吗？", noVoucher: "无优惠券继续", apply: "使用优惠券", amountDue: "应付金额", pay: "银行转账支付" },
   ja: { welcome: "Maison Lucas へようこそ", welcomeText: "お席の準備が整いました。どうぞゆっくりお過ごしください。", continue: "お食事を始める", menu: "メニュー", dietary: "アレルギー", myOrder: "注文履歴", cart: "カート", timeout: "5分間操作がなかったため終了しました。QRコードを再度読み取ってください。", voucherQuestion: "クーポンはありますか？", noVoucher: "クーポンなしで続行", apply: "適用", amountDue: "お支払い金額", pay: "銀行振込で支払う" },
   ko: { welcome: "Maison Lucas에 오신 것을 환영합니다", welcomeText: "테이블이 준비되었습니다. 편안히 즐겨 주세요.", continue: "식사 시작하기", menu: "메뉴", dietary: "알레르기", myOrder: "주문 내역", cart: "장바구니", timeout: "5분 동안 활동이 없어 세션이 종료되었습니다. 테이블 QR을 다시 스캔해 주세요.", voucherQuestion: "바우처가 있으신가요?", noVoucher: "바우처 없이 계속", apply: "적용", amountDue: "결제 금액", pay: "계좌이체 결제" },
+  th: { welcome: "ยินดีต้อนรับสู่ Maison Lucas", welcomeText: "โต๊ะของคุณพร้อมแล้ว พักผ่อนและให้เราดูแลคุณ", continue: "เริ่มประสบการณ์", menu: "เมนู", dietary: "ข้อมูลการแพ้อาหาร", myOrder: "รายการที่สั่ง", cart: "ตะกร้า", timeout: "เซสชันสิ้นสุดหลังจากไม่มีการใช้งาน 5 นาที โปรดสแกน QR อีกครั้ง", voucherQuestion: "คุณมีคูปองหรือไม่?", noVoucher: "ดำเนินการต่อโดยไม่มีคูปอง", apply: "ใช้คูปอง", amountDue: "ยอดที่ต้องชำระ", pay: "ชำระด้วยการโอนเงิน" },
+  ru: { welcome: "Добро пожаловать в Maison Lucas", welcomeText: "Ваш стол готов. Располагайтесь, мы позаботимся об остальном.", continue: "Начать", menu: "Меню", dietary: "Аллергии", myOrder: "Мой заказ", cart: "Корзина", timeout: "Сеанс завершён после 5 минут бездействия. Отсканируйте QR-код снова.", voucherQuestion: "У вас есть ваучер?", noVoucher: "Продолжить без ваучера", apply: "Применить", amountDue: "К оплате", pay: "Оплатить переводом" },
+};
+const uiCopy: Record<Language, Record<string, string>> = {
+  en: { hero: "An evening made to be savoured.", heroText: "Season-led dishes, thoughtfully sourced and prepared with a touch of French soul.", explore: "Explore today's menu", choose: "Choose your favourites", search: "Search dishes...", all: "All dishes", promise: "Good food begins with good ingredients.", emptyCart: "Your cart is empty", emptyOrder: "No active order", placeOrder: "Place order", total: "Total", allergiesTitle: "Let us take care of you.", allergiesText: "Select every food allergy that applies. We will synchronize it with the POS and attach it to your order.", save: "Save allergy information", none: "No known food allergies" },
+  vi: { hero: "Một buổi tối để tận hưởng trọn vẹn.", heroText: "Món ăn theo mùa, nguyên liệu chọn lọc và một chút tinh thần Pháp.", explore: "Khám phá thực đơn hôm nay", choose: "Chọn món yêu thích", search: "Tìm món...", all: "Tất cả món", promise: "Món ngon bắt đầu từ nguyên liệu tốt.", emptyCart: "Giỏ món đang trống", emptyOrder: "Chưa có món đã gọi", placeOrder: "Gửi món", total: "Tổng cộng", allergiesTitle: "Hãy để chúng tôi chăm sóc quý khách.", allergiesText: "Chọn tất cả dị ứng thực phẩm. Thông tin sẽ được đồng bộ với POS và gắn vào đơn.", save: "Lưu thông tin dị ứng", none: "Không có dị ứng đã biết" },
+  fr: { hero: "Une soirée à savourer pleinement.", heroText: "Des produits de saison, choisis avec soin et préparés avec une âme française.", explore: "Découvrir le menu", choose: "Choisissez vos favoris", search: "Rechercher un plat...", all: "Tous les plats", promise: "La bonne cuisine commence par de bons produits.", emptyCart: "Votre panier est vide", emptyOrder: "Aucune commande active", placeOrder: "Commander", total: "Total", allergiesTitle: "Prenons soin de vous.", allergiesText: "Sélectionnez toutes vos allergies. Elles seront synchronisées avec le POS.", save: "Enregistrer les allergies", none: "Aucune allergie connue" },
+  zh: { hero: "一个值得细细品味的夜晚。", heroText: "严选时令食材，以法式灵感精心烹制。", explore: "浏览今日菜单", choose: "选择您喜爱的菜品", search: "搜索菜品...", all: "全部菜品", promise: "好味道始于好食材。", emptyCart: "购物车为空", emptyOrder: "暂无已点菜品", placeOrder: "提交订单", total: "合计", allergiesTitle: "让我们更好地照顾您。", allergiesText: "请选择所有食物过敏项，信息将同步至 POS。", save: "保存过敏信息", none: "无已知食物过敏" },
+  ja: { hero: "心ゆくまで味わう特別な夜。", heroText: "旬の食材を厳選し、フレンチの感性で丁寧に仕上げます。", explore: "本日のメニューを見る", choose: "お好みの料理を選ぶ", search: "料理を検索...", all: "すべての料理", promise: "おいしい料理は良い食材から。", emptyCart: "カートは空です", emptyOrder: "注文はまだありません", placeOrder: "注文する", total: "合計", allergiesTitle: "安心してお楽しみください。", allergiesText: "該当する食物アレルギーをすべて選択してください。POSと同期します。", save: "アレルギー情報を保存", none: "既知の食物アレルギーなし" },
+  ko: { hero: "온전히 음미하는 특별한 저녁.", heroText: "제철 재료를 엄선해 프렌치 감성으로 정성껏 준비합니다.", explore: "오늘의 메뉴 보기", choose: "좋아하는 메뉴 선택", search: "메뉴 검색...", all: "전체 메뉴", promise: "좋은 음식은 좋은 재료에서 시작됩니다.", emptyCart: "장바구니가 비어 있습니다", emptyOrder: "주문 내역이 없습니다", placeOrder: "주문하기", total: "합계", allergiesTitle: "안전한 식사를 위해 알려 주세요.", allergiesText: "해당하는 식품 알레르기를 모두 선택하세요. POS와 동기화됩니다.", save: "알레르기 정보 저장", none: "알려진 식품 알레르기 없음" },
+  th: { hero: "ค่ำคืนที่ควรค่าแก่การลิ้มรส", heroText: "วัตถุดิบตามฤดูกาลที่คัดสรรและปรุงด้วยจิตวิญญาณแบบฝรั่งเศส", explore: "ดูเมนูวันนี้", choose: "เลือกเมนูโปรด", search: "ค้นหาอาหาร...", all: "อาหารทั้งหมด", promise: "อาหารที่ดีเริ่มจากวัตถุดิบที่ดี", emptyCart: "ตะกร้าว่าง", emptyOrder: "ยังไม่มีรายการสั่ง", placeOrder: "ส่งคำสั่งซื้อ", total: "รวม", allergiesTitle: "ให้เราดูแลคุณ", allergiesText: "เลือกการแพ้อาหารทั้งหมด ข้อมูลจะซิงค์กับ POS", save: "บันทึกข้อมูลการแพ้", none: "ไม่มีการแพ้อาหารที่ทราบ" },
+  ru: { hero: "Вечер, которым хочется наслаждаться.", heroText: "Сезонные продукты, тщательно отобранные и приготовленные с французской душой.", explore: "Открыть меню", choose: "Выберите любимые блюда", search: "Найти блюдо...", all: "Все блюда", promise: "Хорошая кухня начинается с хороших продуктов.", emptyCart: "Корзина пуста", emptyOrder: "Активных заказов нет", placeOrder: "Отправить заказ", total: "Итого", allergiesTitle: "Позвольте нам позаботиться о вас.", allergiesText: "Выберите все пищевые аллергии. Информация будет синхронизирована с POS.", save: "Сохранить аллергии", none: "Нет известных пищевых аллергий" },
 };
 
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
@@ -105,8 +120,8 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selected, setSelected] = useState<Product | null>(null);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [serviceOpen, setServiceOpen] = useState(false);
+  const [serviceTab, setServiceTab] = useState<"cart" | "orders">("cart");
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [allergyAsked, setAllergyAsked] = useState(false);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
@@ -125,6 +140,17 @@ export default function Home() {
     setToast({ text, error });
     window.setTimeout(() => setToast(null), 3500);
   };
+
+  const syncGuestPreferences = useCallback(async (nextLanguage: Language, nextAllergies: string[]) => {
+    if (!tableSession) return;
+    const response = await fetch(`${API_BASE}/tables/customer/preferences`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "x-table-session": tableSession },
+      body: JSON.stringify({ language: nextLanguage, allergies: nextAllergies }),
+    });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.message || "Could not save guest preferences.");
+  }, [tableSession]);
 
   const loadMenu = useCallback(async () => {
     try {
@@ -164,6 +190,10 @@ export default function Home() {
       const json = await response.json();
       if (!response.ok) throw new Error(json.message || "This table is not open.");
       setTable(json.data.table);
+      if (json.data.table.guestLanguage && copy[json.data.table.guestLanguage as Language]) {
+        setLanguage(json.data.table.guestLanguage as Language);
+      }
+      setAllergies(json.data.table.guestAllergies || []);
       setTableId(json.data.table.id);
       setTableSession(json.data.token);
       setSessionError("");
@@ -261,9 +291,16 @@ export default function Home() {
     const aliases: Record<string, string[]> = {
       Dairy: ["milk", "cream", "cheese", "butter", "burrata", "parmesan"],
       Gluten: ["wheat", "flour", "bread", "pasta", "noodle"],
-      Nuts: ["nut", "almond", "cashew", "peanut", "walnut", "pistachio"],
+      Peanuts: ["peanut"],
+      "Tree nuts": ["nut", "almond", "cashew", "walnut", "pistachio"],
       Shellfish: ["shrimp", "prawn", "crab", "lobster", "clam", "mussel", "oyster", "calamari"],
       Eggs: ["egg", "mayonnaise"],
+      Fish: ["fish", "salmon", "tuna", "anchovy"],
+      Soy: ["soy", "tofu"],
+      Sesame: ["sesame", "tahini"],
+      Mustard: ["mustard"],
+      Celery: ["celery"],
+      Sulphites: ["sulphite", "sulfite", "wine"],
     };
     return allergies.filter(allergy => (aliases[allergy] || []).some(term => ingredientText.includes(term)));
   }, [allergies]);
@@ -323,8 +360,8 @@ export default function Home() {
       const json = await response.json();
       if (!response.ok) throw new Error(json.message || "Order could not be sent");
       setCart([]);
-      setCartOpen(false);
-      setOrdersOpen(true);
+      setServiceOpen(true);
+      setServiceTab("orders");
       await Promise.all([loadMenu(), loadOrders()]);
       notify("Order sent to the kitchen and POS.");
     } catch (error) {
@@ -356,7 +393,7 @@ export default function Home() {
   const openCheckout = async () => {
     try {
       await loadBill();
-      setOrdersOpen(false);
+      setServiceOpen(false);
       setCheckoutOpen(true);
     } catch (error) {
       notify(error instanceof Error ? error.message : "Unable to load your bill.", true);
@@ -385,7 +422,7 @@ export default function Home() {
         const next = json.data;
         setPayment((current) => current ? { ...current, ...next } : current);
         if (next.status === "Paid") {
-          setOrdersOpen(false);
+          setServiceOpen(false);
           notify("Payment confirmed. Thank you.");
         }
       } catch { /* keep polling until the payment expires */ }
@@ -411,19 +448,19 @@ export default function Home() {
         <nav>
           <a className="active" href="#menu">{copy[language].menu}</a>
           <button onClick={() => setPreferencesOpen(true)}>{copy[language].dietary}</button>
-          <button onClick={() => { setOrdersOpen(true); loadOrders(); }}>{copy[language].myOrder}</button>
+          <button onClick={() => { setServiceOpen(true); setServiceTab("orders"); loadOrders(); }}>{copy[language].myOrder}</button>
         </nav>
         <div className="headerActions">
-          <select className="languageSelect" value={language} onChange={event => setLanguage(event.target.value as Language)} aria-label="Language">
+          <select className="languageSelect" value={language} onChange={event => {
+            const nextLanguage = event.target.value as Language;
+            setLanguage(nextLanguage);
+            syncGuestPreferences(nextLanguage, allergies).catch(() => notify("Could not synchronize language with the POS.", true));
+          }} aria-label="Language">
             {languages.map(item => <option value={item.code} key={item.code}>{item.label}</option>)}
           </select>
           <div className="tablePicker"><span>{table ? table.name : sessionError ? "QR required" : "Joining table..."}</span></div>
-          <button className="ordersButton" onClick={() => { setOrdersOpen(true); loadOrders(); }} aria-label={copy[language].myOrder}>
-            <Icon name="receipt" /><span>{copy[language].myOrder}</span>
-            {orders.length > 0 && <em>{orders.reduce((sum, order) => sum + order.items.length, 0)}</em>}
-          </button>
-          <button className="cartButton" onClick={() => setCartOpen(true)} aria-label="Open cart">
-            <Icon name="cart" /><span>{copy[language].cart}</span>{cartCount > 0 && <em>{cartCount}</em>}
+          <button className="cartButton combinedOrderButton" onClick={() => { setServiceOpen(true); setServiceTab(cartCount ? "cart" : "orders"); loadOrders(); }} aria-label={`${copy[language].cart} / ${copy[language].myOrder}`}>
+            <Icon name="cart" /><span>{copy[language].cart} · {copy[language].myOrder}</span>{(cartCount + orders.length) > 0 && <em>{cartCount + orders.length}</em>}
           </button>
         </div>
       </header>
@@ -431,9 +468,9 @@ export default function Home() {
       <section className="hero" id="top">
         <div className="heroContent">
           <p className="eyebrow">CHEF&apos;S SELECTION · TODAY</p>
-          <h1>An evening made<br />to be <i>savoured.</i></h1>
-          <p>Season-led dishes, thoughtfully sourced and prepared with a touch of French soul.</p>
-          <a className="primaryButton" href="#menu">Explore today&apos;s menu <Icon name="chevron" size={18} /></a>
+          <h1>{uiCopy[language].hero}</h1>
+          <p>{uiCopy[language].heroText}</p>
+          <a className="primaryButton" href="#menu">{uiCopy[language].explore} <Icon name="chevron" size={18} /></a>
         </div>
         <div className="heroPlate" aria-hidden>
           <div className="plate"><span>✦</span></div>
@@ -443,11 +480,11 @@ export default function Home() {
 
       <section className="menuSection" id="menu">
         <div className="sectionHeading">
-          <div><p className="eyebrow">OUR MENU</p><h2>Choose your favourites</h2></div>
-          <div className="search"><Icon name="search" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search dishes..." /></div>
+          <div><p className="eyebrow">{copy[language].menu}</p><h2>{uiCopy[language].choose}</h2></div>
+          <div className="search"><Icon name="search" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={uiCopy[language].search} /></div>
         </div>
         <div className="categoryRow">
-          <button className={category === "all" ? "active" : ""} onClick={() => setCategory("all")}>All dishes</button>
+          <button className={category === "all" ? "active" : ""} onClick={() => setCategory("all")}>{uiCopy[language].all}</button>
           {categories.map((item) => <button key={item.id} className={category === String(item.id) ? "active" : ""} onClick={() => setCategory(String(item.id))}>{item.name}</button>)}
         </div>
 
@@ -467,7 +504,7 @@ export default function Home() {
                   <p className="dishCategory">{product.category?.name || "Chef's selection"}</p>
                   <h3>{productName(product)}</h3>
                   <p>{product.description || "Prepared to order with the finest seasonal ingredients."}</p>
-                  <div><b>{money(product.price)}</b><button disabled={soldOut} aria-label={`Add ${productName(product)}`} onClick={(event) => { event.stopPropagation(); add(product); }}><Icon name="plus" /></button></div>
+                  <div><b>{money(product.price, language)}</b><button disabled={soldOut} aria-label={`Add ${productName(product)}`} onClick={(event) => { event.stopPropagation(); add(product); }}><Icon name="plus" /></button></div>
                 </div>
               </article>;
             })}
@@ -475,53 +512,79 @@ export default function Home() {
       </section>
 
       <section className="promise">
-        <Icon name="leaf" size={28} /><div><p className="eyebrow">OUR PROMISE</p><h2>Good food begins with good ingredients.</h2></div>
+        <Icon name="leaf" size={28} /><div><p className="eyebrow">MAISON LUCAS</p><h2>{uiCopy[language].promise}</h2></div>
         <p>We work with local growers and trusted producers to bring every plate to life.</p>
       </section>
 
       <footer><span>MAISON LUCAS</span><p>Please tell your server about any allergies. Prices include applicable taxes.</p><b>{table ? `Ordering for ${table.name}` : "Select your table to begin"}</b></footer>
 
-      {selected && <ItemModal product={selected} onClose={() => setSelected(null)} onAdd={add} />}
-      {cartOpen && <Drawer title="Your order" subtitle={table?.name || "No table selected"} onClose={() => setCartOpen(false)}>
-        {!cart.length ? <Empty icon="cart" title="Your cart is empty" text="Explore the menu and add something delicious." /> :
+      {selected && <ItemModal product={selected} language={language} onClose={() => setSelected(null)} onAdd={add} />}
+      {serviceOpen && <Drawer title={`${copy[language].cart} & ${copy[language].myOrder}`} subtitle={table?.name || "No table selected"} onClose={() => setServiceOpen(false)}>
+        <div className="serviceTabs">
+          <button className={serviceTab === "cart" ? "active" : ""} onClick={() => setServiceTab("cart")}><Icon name="cart" />{copy[language].cart}<em>{cartCount}</em></button>
+          <button className={serviceTab === "orders" ? "active" : ""} onClick={() => { setServiceTab("orders"); loadOrders(); }}><Icon name="receipt" />{copy[language].myOrder}<em>{orders.reduce((sum, order) => sum + order.items.length, 0)}</em></button>
+        </div>
+        {serviceTab === "cart" && (!cart.length ? <Empty icon="cart" title={uiCopy[language].emptyCart} text={uiCopy[language].explore} /> :
           <>
             <div className="cartList">{cart.map((item) => <div className="cartItem" key={item.id}>
-              <div><h4>{productName(item)}</h4><p>{money(item.price)} each</p></div>
+              <div><h4>{productName(item)}</h4><p>{money(item.price, language)} each</p></div>
               <div className="stepper"><button onClick={() => updateQuantity(item.id, -1)}><Icon name="minus" size={16} /></button><b>{item.quantity}</b><button onClick={() => updateQuantity(item.id, 1)}><Icon name="plus" size={16} /></button></div>
-              <strong>{money(item.price * item.quantity)}</strong>
+              <strong>{money(item.price * item.quantity, language)}</strong>
             </div>)}</div>
             <button className="dietAlert" onClick={() => setPreferencesOpen(true)}><Icon name="leaf" /><span><b>Dietary preferences</b><small>{allergies.length ? allergies.join(", ") : "Add allergies or dietary needs"}</small></span><Icon name="chevron" /></button>
-            <div className="cartFooter"><div><span>Total</span><strong>{money(cartTotal)}</strong></div><button className="primaryButton full" disabled={sending} onClick={placeOrder}>{sending ? "Sending..." : "Place order"} <Icon name="chevron" /></button></div>
-          </>}
-      </Drawer>}
-
-      {ordersOpen && <Drawer title="My order" subtitle={table?.name || "Select a table"} onClose={() => setOrdersOpen(false)}>
-        {!orders.length ? <Empty icon="receipt" title="No active order" text="Items you send to the kitchen will appear here." /> :
+            <div className="cartFooter"><div><span>{uiCopy[language].total}</span><strong>{money(cartTotal, language)}</strong></div><button className="primaryButton full" disabled={sending} onClick={placeOrder}>{sending ? "..." : uiCopy[language].placeOrder} <Icon name="chevron" /></button></div>
+          </>)}
+        {serviceTab === "orders" && (!orders.length ? <Empty icon="receipt" title={uiCopy[language].emptyOrder} text={uiCopy[language].emptyOrder} /> :
           <div className="orderList">{orders.flatMap((order) => order.items.map((item) => <div className="orderItem" key={item.id}>
-            <span>{item.quantity}</span><div><h4>{productName(item.product)}</h4><p>{item.note || "No special request"}</p></div><em>{item.status}</em><strong>{money(item.price * item.quantity)}</strong>
-          </div>))}<div className="orderTotal"><span>Current total</span><b>{money(orders.reduce((sum, order) => sum + Number(order.totalPrice), 0))}</b></div>
+            <span>{item.quantity}</span><div><h4>{productName(item.product)}</h4><p>{item.note || "No special request"}</p></div><em>{item.status}</em><strong>{money(item.price * item.quantity, language)}</strong>
+          </div>))}<div className="orderTotal"><span>Current total</span><b>{money(orders.reduce((sum, order) => sum + Number(order.totalPrice), 0), language)}</b></div>
             <button className="primaryButton full" disabled={paymentLoading} onClick={openCheckout}>{paymentLoading ? "Preparing payment..." : copy[language].pay} <Icon name="chevron" /></button>
-          </div>}
+          </div>)}
       </Drawer>}
 
-      {welcomeOpen && <Welcome tableName={table.name} language={language} onContinue={() => { setWelcomeOpen(false); setPreferencesOpen(true); }} />}
+      {welcomeOpen && <Welcome tableName={table.name} language={language} onContinue={async nextLanguage => {
+        setLanguage(nextLanguage);
+        try {
+          await syncGuestPreferences(nextLanguage, []);
+          setWelcomeOpen(false);
+          setPreferencesOpen(true);
+        } catch (error) {
+          notify(error instanceof Error ? error.message : "Could not save language.", true);
+        }
+      }} />}
       {checkoutOpen && bill && <CheckoutModal bill={bill} language={language} loading={paymentLoading} onApplyVoucher={applyVoucher} onPay={startPayment} onClose={() => setCheckoutOpen(false)} />}
-      {payment && <PaymentModal payment={payment} onClose={() => payment.status === "Pending" ? setPayment(null) : window.location.assign(window.location.origin)} />}
-      {preferencesOpen && <Preferences selected={allergies} required={!allergyAsked} onClose={() => allergyAsked && setPreferencesOpen(false)} onSave={(items) => { setAllergies(items); setAllergyAsked(true); setPreferencesOpen(false); notify(items.length ? "Allergy alerts are now shown on matching dishes." : "No allergies selected."); }} />}
+      {payment && <PaymentModal payment={payment} language={language} onClose={() => payment.status === "Pending" ? setPayment(null) : window.location.assign(window.location.origin)} />}
+      {preferencesOpen && <Preferences language={language} selected={allergies} required={!allergyAsked} onClose={() => allergyAsked && setPreferencesOpen(false)} onSave={async items => {
+        try {
+          await syncGuestPreferences(language, items);
+          setAllergies(items);
+          setAllergyAsked(true);
+          setPreferencesOpen(false);
+          notify(items.length ? "Allergy alerts are now synchronized with the POS." : "No allergies selected.");
+        } catch (error) {
+          notify(error instanceof Error ? error.message : "Could not save allergy information.", true);
+        }
+      }} />}
       {toast && <div className={`toast ${toast.error ? "error" : ""}`}><Icon name={toast.error ? "close" : "check"} />{toast.text}</div>}
     </main>
   );
 }
 
-function Welcome({ tableName, language, onContinue }: { tableName: string; language: Language; onContinue: () => void }) {
-  const text = copy[language];
+function Welcome({ tableName, language, onContinue }: { tableName: string; language: Language; onContinue: (language: Language) => Promise<void> }) {
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const [stage, setStage] = useState<"welcome" | "language">("welcome");
+  const [saving, setSaving] = useState(false);
+  const text = copy[selectedLanguage];
   return <div className="welcomeScreen">
     <div className="welcomeGlow" />
     <div className="welcomeOrnament"><span>ML</span></div>
     <p className="eyebrow">MAISON LUCAS · {tableName}</p>
-    <h1>{text.welcome}</h1>
-    <p>{text.welcomeText}</p>
-    <button className="primaryButton" onClick={onContinue}>{text.continue}<Icon name="chevron" /></button>
+    <h1>{stage === "welcome" ? text.welcome : "Choose your language"}</h1>
+    <p>{stage === "welcome" ? text.welcomeText : "Please choose the language you would like to use for your dining experience."}</p>
+    {stage === "language" && <div className="welcomeLanguages">{languages.map(item => <button className={selectedLanguage === item.code ? "active" : ""} key={item.code} onClick={() => setSelectedLanguage(item.code)}>{item.label}</button>)}</div>}
+    {stage === "welcome"
+      ? <button className="primaryButton" onClick={() => setStage("language")}>{text.continue}<Icon name="chevron" /></button>
+      : <button className="primaryButton" disabled={saving} onClick={async () => { setSaving(true); await onContinue(selectedLanguage); setSaving(false); }}>{saving ? "..." : text.continue}<Icon name="chevron" /></button>}
     <div className="welcomeSparkles" aria-hidden><i /><i /><i /><i /><i /></div>
   </div>;
 }
@@ -572,7 +635,7 @@ function CheckoutModal({
         <button disabled={applying} onClick={apply}>{applying ? "..." : text.apply}</button>
       </div> : <button className="addVoucherLink" onClick={() => setShowVoucher(true)}>+ Add voucher</button>}
       {error && <p className="checkoutError">{error}</p>}
-      <BillBreakdown bill={bill} amountLabel={text.amountDue} />
+      <BillBreakdown bill={bill} language={language} amountLabel={text.amountDue} />
       <button className="primaryButton full" disabled={loading} onClick={onPay}>
         {loading ? "Preparing secure payment..." : text.pay}<Icon name="chevron" />
       </button>
@@ -580,32 +643,32 @@ function CheckoutModal({
   </div>;
 }
 
-function BillBreakdown({ bill, amountLabel }: { bill: BillSnapshot; amountLabel: string }) {
+function BillBreakdown({ bill, language, amountLabel }: { bill: BillSnapshot; language: Language; amountLabel: string }) {
   return <div className="billBreakdown">
-    <div><span>Subtotal</span><b>{money(bill.subtotal)}</b></div>
-    {bill.voucherDiscountAmount > 0 && <div className="discountLine"><span>Voucher {bill.voucherCode}</span><b>− {money(bill.voucherDiscountAmount)}</b></div>}
-    {bill.billDiscountAmount > 0 && <div className="discountLine"><span>Service recovery ({bill.billDiscountPercent}%)<small>{bill.billDiscountReason}</small></span><b>− {money(bill.billDiscountAmount)}</b></div>}
-    {bill.foodVatAmount > 0 && <div><span>Food VAT</span><b>{money(bill.foodVatAmount)}</b></div>}
-    {bill.alcoholVatAmount > 0 && <div><span>Alcohol VAT</span><b>{money(bill.alcoholVatAmount)}</b></div>}
-    {bill.serviceChargeAmount > 0 && <div><span>{bill.serviceChargeName || "Service charge"}</span><b>{money(bill.serviceChargeAmount)}</b></div>}
-    <div className="billGrandTotal"><span>{amountLabel}</span><b>{money(bill.totalAmount)}</b></div>
+    <div><span>Subtotal</span><b>{money(bill.subtotal, language)}</b></div>
+    {bill.voucherDiscountAmount > 0 && <div className="discountLine"><span>Voucher {bill.voucherCode}</span><b>− {money(bill.voucherDiscountAmount, language)}</b></div>}
+    {bill.billDiscountAmount > 0 && <div className="discountLine"><span>Service recovery ({bill.billDiscountPercent}%)<small>{bill.billDiscountReason}</small></span><b>− {money(bill.billDiscountAmount, language)}</b></div>}
+    {bill.foodVatAmount > 0 && <div><span>Food VAT</span><b>{money(bill.foodVatAmount, language)}</b></div>}
+    {bill.alcoholVatAmount > 0 && <div><span>Alcohol VAT</span><b>{money(bill.alcoholVatAmount, language)}</b></div>}
+    {bill.serviceChargeAmount > 0 && <div><span>{bill.serviceChargeName || "Service charge"}</span><b>{money(bill.serviceChargeAmount, language)}</b></div>}
+    <div className="billGrandTotal"><span>{amountLabel}</span><b>{money(bill.totalAmount, language)}</b></div>
   </div>;
 }
 
-function PaymentModal({ payment, onClose }: { payment: SePayPayment; onClose: () => void }) {
+function PaymentModal({ payment, language, onClose }: { payment: SePayPayment; language: Language; onClose: () => void }) {
   const paid = payment.status === "Paid";
   const terminal = payment.status === "Failed" || payment.status === "Expired";
   return <div className="overlay paymentOverlay"><section className="paymentCard">
     <button className="closeButton" onClick={onClose}><Icon name="close" /></button>
     <p className="eyebrow">{paid ? "PAYMENT CONFIRMED" : terminal ? "PAYMENT NOT COMPLETED" : "SECURE BANK TRANSFER"}</p>
     <h2>{paid ? "Thank you." : terminal ? "Please try again." : "Scan to settle your bill"}</h2>
-    {paid ? <div className="paymentSuccess"><Icon name="check" size={38} /><b>{money(payment.amount)}</b><span>Receipt #{payment.receiptId}</span></div> :
+    {paid ? <div className="paymentSuccess"><Icon name="check" size={38} /><b>{money(payment.amount, language)}</b><span>Receipt #{payment.receiptId}</span></div> :
       terminal ? <div className="paymentFailure"><Icon name="close" size={32} /><p>{payment.failureReason || "This payment request is no longer active."}</p></div> :
         <>
           {/* The provider generates this QR dynamically; Next image optimization would cache payment-specific URLs. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="paymentQr" src={payment.qrUrl} alt={`Payment QR for ${payment.reference}`} />
-          <div className="paymentAmount"><span>Amount due</span><b>{money(payment.amount)}</b></div>
+          <div className="paymentAmount"><span>Amount due</span><b>{money(payment.amount, language)}</b></div>
           <dl className="paymentDetails"><div><dt>Account</dt><dd>{payment.accountNumber}</dd></div><div><dt>Account name</dt><dd>{payment.accountName}</dd></div><div><dt>Transfer content</dt><dd>{payment.reference}</dd></div></dl>
           <p className="paymentHint">Transfer the exact amount and keep the content unchanged. This page confirms automatically.</p>
           <div className="paymentWaiting"><i /> Waiting for payment</div>
@@ -613,7 +676,7 @@ function PaymentModal({ payment, onClose }: { payment: SePayPayment; onClose: ()
   </section></div>;
 }
 
-function ItemModal({ product, onClose, onAdd }: { product: Product; onClose: () => void; onAdd: (p: Product, q: number, note: string) => void }) {
+function ItemModal({ product, language, onClose, onAdd }: { product: Product; language: Language; onClose: () => void; onAdd: (p: Product, q: number, note: string) => void }) {
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
   return <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -624,7 +687,7 @@ function ItemModal({ product, onClose, onAdd }: { product: Product; onClose: () 
         {product.remainingQty != null && <div className="remaining"><b>{product.remainingQty}</b><span>portions<br />left today</span></div>}
         <label>Special request<textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. sauce on the side" /></label>
         <div className="modalAction"><div className="stepper large"><button onClick={() => setQuantity(Math.max(1, quantity - 1))}><Icon name="minus" /></button><b>{quantity}</b><button onClick={() => setQuantity(Math.min(product.remainingQty ?? 99, quantity + 1))}><Icon name="plus" /></button></div>
-          <button className="primaryButton" onClick={() => onAdd(product, quantity, note)}>Add · {money(product.price * quantity)}</button></div>
+          <button className="primaryButton" onClick={() => onAdd(product, quantity, note)}>Add · {money(product.price * quantity, language)}</button></div>
       </div>
     </div>
   </div>;
@@ -640,14 +703,14 @@ function Empty({ icon, title, text }: { icon: string; title: string; text: strin
   return <div className="empty"><span><Icon name={icon} size={32} /></span><h3>{title}</h3><p>{text}</p></div>;
 }
 
-function Preferences({ selected, required, onClose, onSave }: { selected: string[]; required?: boolean; onClose: () => void; onSave: (items: string[]) => void }) {
-  const choices = ["Dairy", "Gluten", "Nuts", "Shellfish", "Eggs", "Vegan", "Vegetarian"];
+function Preferences({ language, selected, required, onClose, onSave }: { language: Language; selected: string[]; required?: boolean; onClose: () => void; onSave: (items: string[]) => void | Promise<void> }) {
+  const choices = ["Dairy", "Gluten", "Peanuts", "Tree nuts", "Shellfish", "Fish", "Eggs", "Soy", "Sesame", "Mustard", "Celery", "Sulphites"];
   const [items, setItems] = useState(selected);
   return <div className="overlay"><div className="preferences">
     {!required && <button className="closeButton" onClick={onClose}><Icon name="close" /></button>}<span className="preferenceIcon"><Icon name="leaf" size={32} /></span>
-    <p className="eyebrow">BEFORE YOU ORDER</p><h2>Let us take care of you.</h2><p>Select any allergies or dietary preferences. We&apos;ll attach them to every item in your order.</p>
+    <p className="eyebrow">{copy[language].dietary}</p><h2>{uiCopy[language].allergiesTitle}</h2><p>{uiCopy[language].allergiesText}</p>
     <div className="choiceGrid">{choices.map((choice) => <button key={choice} className={items.includes(choice) ? "active" : ""} onClick={() => setItems((list) => list.includes(choice) ? list.filter((x) => x !== choice) : [...list, choice])}>{items.includes(choice) && <Icon name="check" size={16} />}{choice}</button>)}</div>
-    <button className="primaryButton full" onClick={() => onSave(items)}>Save preferences</button><button className="textButton" onClick={() => onSave([])}>No dietary preferences</button>
+    <button className="primaryButton full" onClick={() => onSave(items)}>{uiCopy[language].save}</button><button className="textButton" onClick={() => onSave([])}>{uiCopy[language].none}</button>
   </div></div>;
 }
 
