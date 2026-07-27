@@ -122,6 +122,7 @@ footer b { color:#d3c8c1; }
 .cartItem p,.orderItem p { margin:0; color:var(--muted); font-size:11px; }
 .cartItem>strong,.orderItem>strong { font:700 14px Georgia; color:var(--wine); }
 .dietAlert { margin:15px 30px; padding:16px; border:1px solid #decdbd; background:#fffaf2; text-align:left; display:flex; align-items:center; gap:13px; cursor:pointer; }
+.courseChoice{margin:15px 30px;padding:14px;border:1px solid #decdbd;background:#fff}.courseChoice>b{display:block;margin-bottom:9px;font-size:11px;text-transform:uppercase;letter-spacing:.7px}.courseChoice>div{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.courseChoice button{min-height:38px;border:1px solid #d8ccc4;background:#fff;color:#71645d;font-size:9px;font-weight:900}.courseChoice button.active{border-color:var(--wine);background:var(--wine);color:#fff}
 .dietAlert>svg { color:var(--wine); }
 .dietAlert span { flex:1; }
 .dietAlert b,.dietAlert small { display:block; }

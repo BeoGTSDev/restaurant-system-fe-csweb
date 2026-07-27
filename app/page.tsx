@@ -126,6 +126,7 @@ export default function Home() {
   const [allergyAsked, setAllergyAsked] = useState(false);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [allergies, setAllergies] = useState<string[]>([]);
+  const [courseTiming, setCourseTiming] = useState<"ALL_NOW" | "SHARE" | "SAME_TIME">("ALL_NOW");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [payment, setPayment] = useState<SePayPayment | null>(null);
@@ -248,6 +249,14 @@ export default function Home() {
   }, [tableId, tableSession, loadOrders]);
 
   useEffect(() => {
+    if (!checkoutOpen || !tableSession) return;
+    const timer = window.setInterval(() => {
+      loadBill().catch(() => undefined);
+    }, 2500);
+    return () => window.clearInterval(timer);
+  }, [checkoutOpen, tableSession, loadBill]);
+
+  useEffect(() => {
     if (!tableSession) return;
     let timer = 0;
     const expire = () => {
@@ -350,6 +359,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json", "x-table-session": tableSession },
         body: JSON.stringify({
           tableId,
+          courseTiming,
           items: cart.map((item) => ({
             productId: item.id,
             quantity: item.quantity,
@@ -532,6 +542,7 @@ export default function Home() {
               <strong>{money(item.price * item.quantity, language)}</strong>
             </div>)}</div>
             <button className="dietAlert" onClick={() => setPreferencesOpen(true)}><Icon name="leaf" /><span><b>Dietary preferences</b><small>{allergies.length ? allergies.join(", ") : "Add allergies or dietary needs"}</small></span><Icon name="chevron" /></button>
+            <div className="courseChoice"><b>Serve these dishes</b><div>{(["ALL_NOW","SHARE","SAME_TIME"] as const).map(value => <button className={courseTiming === value ? "active" : ""} onClick={() => setCourseTiming(value)} key={value}>{value.replace("_"," ")}</button>)}</div></div>
             <div className="cartFooter"><div><span>{uiCopy[language].total}</span><strong>{money(cartTotal, language)}</strong></div><button className="primaryButton full" disabled={sending} onClick={placeOrder}>{sending ? "..." : uiCopy[language].placeOrder} <Icon name="chevron" /></button></div>
           </>)}
         {serviceTab === "orders" && (!orders.length ? <Empty icon="receipt" title={uiCopy[language].emptyOrder} text={uiCopy[language].emptyOrder} /> :
