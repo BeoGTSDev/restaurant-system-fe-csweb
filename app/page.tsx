@@ -1,4 +1,5 @@
 "use client";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import jsQR from "jsqr";
@@ -461,6 +462,7 @@ export default function Home() {
           <button onClick={() => { setServiceOpen(true); setServiceTab("orders"); loadOrders(); }}>{copy[language].myOrder}</button>
         </nav>
         <div className="headerActions">
+          <ThemeSwitcher />
           <select className="languageSelect" value={language} onChange={event => {
             const nextLanguage = event.target.value as Language;
             setLanguage(nextLanguage);
@@ -784,6 +786,7 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
   }, [onScan]);
 
   return <main className="scannerPage">
+    <div className="scannerTheme"><ThemeSwitcher /></div>
     <section className="scannerCard">
       <div className="scannerBrand">ML</div>
       <p className="eyebrow">MAISON LUCAS · TABLE ORDERING</p>
