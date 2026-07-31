@@ -3,6 +3,7 @@ import ThemeSwitcher from "./ThemeSwitcher";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import jsQR from "jsqr";
+import { categoryName, extraCopy, tr, type Language } from "./i18n";
 
 type Category = { id: number; name: string };
 type Product = {
@@ -56,8 +57,6 @@ type BillSnapshot = {
   serviceChargeName?: string | null;
   totalAmount: number;
 };
-type Language = "en" | "vi" | "fr" | "zh" | "ja" | "ko" | "th" | "ru";
-
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api").replace(/\/$/, "");
 const locales: Record<Language, string> = { en: "en-US", vi: "vi-VN", fr: "fr-FR", zh: "zh-CN", ja: "ja-JP", ko: "ko-KR", th: "th-TH", ru: "ru-RU" };
 const money = (value: number, language: Language = "en") =>
@@ -319,14 +318,14 @@ export default function Home() {
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
   const add = (product: Product, quantity = 1, note = "") => {
     if (product.status !== "In Stock" || product.remainingQty === 0) {
-      notify(`${productName(product)} is sold out today.`, true);
+      notify(`${productName(product)} · ${tr(language, "soldOutToday")}`, true);
       return;
     }
     setCart((current) => {
       const existing = current.find((item) => item.id === product.id);
       const nextQty = (existing?.quantity || 0) + quantity;
       if (product.remainingQty != null && nextQty > product.remainingQty) {
-        notify(`Only ${product.remainingQty} portions left today.`, true);
+        notify(`${product.remainingQty} ${tr(language, "portionsLeft")}`, true);
         return current;
       }
       return existing
@@ -334,7 +333,7 @@ export default function Home() {
         : [...current, { ...product, quantity, note }];
     });
     setSelected(null);
-    notify(`${productName(product)} added to your order.`);
+    notify(`${tr(language, "add")}: ${productName(product)}`);
   };
 
   const updateQuantity = (id: number, delta: number) => {
@@ -343,7 +342,7 @@ export default function Home() {
       const quantity = item.quantity + delta;
       if (quantity <= 0) return [];
       if (item.remainingQty != null && quantity > item.remainingQty) {
-        notify(`Only ${item.remainingQty} portions left today.`, true);
+        notify(`${item.remainingQty} ${tr(language, "portionsLeft")}`, true);
         return [item];
       }
       return [{ ...item, quantity }];
@@ -351,7 +350,7 @@ export default function Home() {
   };
 
   const placeOrder = async () => {
-    if (!tableId || !tableSession) return notify("Scan your table QR code before ordering.", true);
+    if (!tableId || !tableSession) return notify(tr(language, "scanBeforeOrder"), true);
     if (!cart.length) return;
     setSending(true);
     try {
@@ -369,21 +368,21 @@ export default function Home() {
         }),
       });
       const json = await response.json();
-      if (!response.ok) throw new Error(json.message || "Order could not be sent");
+      if (!response.ok) throw new Error(json.message || tr(language, "orderFailed"));
       setCart([]);
       setServiceOpen(true);
       setServiceTab("orders");
       await Promise.all([loadMenu(), loadOrders()]);
-      notify("Order sent to the kitchen and POS.");
+      notify(tr(language, "orderSent"));
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Order could not be sent", true);
+      notify(error instanceof Error ? error.message : tr(language, "orderFailed"), true);
     } finally {
       setSending(false);
     }
   };
 
   const startPayment = async () => {
-    if (!tableSession) return notify("Scan your table QR code before paying.", true);
+    if (!tableSession) return notify(tr(language, "scanBeforePay"), true);
     setPaymentLoading(true);
     try {
       const response = await fetch(`${API_BASE}/payments/sepay/create`, {
@@ -392,10 +391,10 @@ export default function Home() {
         body: JSON.stringify({ tableId }),
       });
       const json = await response.json();
-      if (!response.ok) throw new Error(json.message || "Payment could not be created");
+      if (!response.ok) throw new Error(json.message || tr(language, "paymentCreateFailed"));
       setPayment(json.data);
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Payment could not be created", true);
+      notify(error instanceof Error ? error.message : tr(language, "paymentCreateFailed"), true);
     } finally {
       setPaymentLoading(false);
     }
@@ -407,7 +406,7 @@ export default function Home() {
       setServiceOpen(false);
       setCheckoutOpen(true);
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Unable to load your bill.", true);
+      notify(error instanceof Error ? error.message : tr(language, "billLoadFailed"), true);
     }
   };
 
@@ -418,7 +417,7 @@ export default function Home() {
       body: JSON.stringify({ code }),
     });
     const json = await response.json();
-    if (!response.ok) throw new Error(json.message || "Voucher could not be applied.");
+    if (!response.ok) throw new Error(json.message || tr(language, "voucherError"));
     setBill(json.data);
     notify(`Voucher ${json.data.voucherCode} applied.`);
   };
@@ -434,7 +433,7 @@ export default function Home() {
         setPayment((current) => current ? { ...current, ...next } : current);
         if (next.status === "Paid") {
           setServiceOpen(false);
-          notify("Payment confirmed. Thank you.");
+          notify(tr(language, "paymentConfirmed"));
         }
       } catch { /* keep polling until the payment expires */ }
     }, 2000);
@@ -454,7 +453,7 @@ export default function Home() {
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Maison Lucas home">
           <span className="brandMark">MR</span>
-          <span><b>MAISON LUCAS</b><small>Restaurant & Wine</small></span>
+          <span><b>MAISON LUCAS</b><small>{tr(language, "restaurantSubtitle")}</small></span>
         </a>
         <nav>
           <a className="active" href="#menu">{copy[language].menu}</a>
@@ -466,11 +465,11 @@ export default function Home() {
           <select className="languageSelect" value={language} onChange={event => {
             const nextLanguage = event.target.value as Language;
             setLanguage(nextLanguage);
-            syncGuestPreferences(nextLanguage, allergies).catch(() => notify("Could not synchronize language with the POS.", true));
-          }} aria-label="Language">
+            syncGuestPreferences(nextLanguage, allergies).catch(() => notify(tr(nextLanguage, "syncLanguageError"), true));
+          }} aria-label={tr(language, "chooseLanguage")}>
             {languages.map(item => <option value={item.code} key={item.code}>{item.label}</option>)}
           </select>
-          <div className="tablePicker"><span>{table ? table.name : sessionError ? "QR required" : "Joining table..."}</span></div>
+          <div className="tablePicker"><span>{table ? table.name : sessionError ? tr(language, "qrRequired") : tr(language, "joiningTable")}</span></div>
           <button className="cartButton combinedOrderButton" onClick={() => { setServiceOpen(true); setServiceTab(cartCount ? "cart" : "orders"); loadOrders(); }} aria-label={`${copy[language].cart} / ${copy[language].myOrder}`}>
             <Icon name="cart" /><span>{copy[language].cart} · {copy[language].myOrder}</span>{(cartCount + orders.length) > 0 && <em>{cartCount + orders.length}</em>}
           </button>
@@ -479,14 +478,14 @@ export default function Home() {
 
       <section className="hero" id="top">
         <div className="heroContent">
-          <p className="eyebrow">CHEF&apos;S SELECTION · TODAY</p>
+          <p className="eyebrow">{tr(language, "chefToday")}</p>
           <h1>{uiCopy[language].hero}</h1>
           <p>{uiCopy[language].heroText}</p>
           <a className="primaryButton" href="#menu">{uiCopy[language].explore} <Icon name="chevron" size={18} /></a>
         </div>
         <div className="heroPlate" aria-hidden>
           <div className="plate"><span>✦</span></div>
-          <p>THE SOMMELIER&apos;S PAIRING</p>
+          <p>{tr(language, "pairing")}</p>
         </div>
       </section>
 
@@ -497,7 +496,7 @@ export default function Home() {
         </div>
         <div className="categoryRow">
           <button className={category === "all" ? "active" : ""} onClick={() => setCategory("all")}>{uiCopy[language].all}</button>
-          {categories.map((item) => <button key={item.id} className={category === String(item.id) ? "active" : ""} onClick={() => setCategory(String(item.id))}>{item.name}</button>)}
+          {categories.map((item) => <button key={item.id} className={category === String(item.id) ? "active" : ""} onClick={() => setCategory(String(item.id))}>{categoryName(language, item.name)}</button>)}
         </div>
 
         {loading ? <div className="loadingGrid">{[1,2,3,4,5,6].map((n) => <div className="skeleton" key={n} />)}</div> :
@@ -508,14 +507,14 @@ export default function Home() {
               return <article className={`dishCard ${soldOut ? "soldOut" : ""}`} key={product.id} onClick={() => !soldOut && setSelected(product)}>
                 <div className={`dishImage tone${index % 6}`} style={product.imageUrl ? { backgroundImage: `url("${product.imageUrl}")` } : undefined}>
                   {!product.imageUrl && <span>{["✦","❦","◇","✧","◈","❧"][index % 6]}</span>}
-                  {product.remainingQty != null && <strong className="stockBadge">{product.remainingQty}<small>LEFT</small></strong>}
-                  {soldOut && <span className="soldBadge">SOLD OUT TODAY</span>}
-                  {!!allergyMatches.length && <span className="allergyRibbon">ALLERGY · {allergyMatches.join(" / ")}</span>}
+                  {product.remainingQty != null && <strong className="stockBadge">{product.remainingQty}<small>{tr(language, "left")}</small></strong>}
+                  {soldOut && <span className="soldBadge">{tr(language, "soldOutToday")}</span>}
+                  {!!allergyMatches.length && <span className="allergyRibbon">{tr(language, "allergy")} · {allergyMatches.map(item => extraCopy[language][item as keyof typeof extraCopy.en] || item).join(" / ")}</span>}
                 </div>
                 <div className="dishBody">
-                  <p className="dishCategory">{product.category?.name || "Chef's selection"}</p>
+                  <p className="dishCategory">{categoryName(language, product.category?.name)}</p>
                   <h3>{productName(product)}</h3>
-                  <p>{product.description || "Prepared to order with the finest seasonal ingredients."}</p>
+                  <p>{product.description || tr(language, "defaultDescription")}</p>
                   <div><b>{money(product.price, language)}</b><button disabled={soldOut} aria-label={`Add ${productName(product)}`} onClick={(event) => { event.stopPropagation(); add(product); }}><Icon name="plus" /></button></div>
                 </div>
               </article>;
@@ -525,13 +524,13 @@ export default function Home() {
 
       <section className="promise">
         <Icon name="leaf" size={28} /><div><p className="eyebrow">MAISON LUCAS</p><h2>{uiCopy[language].promise}</h2></div>
-        <p>We work with local growers and trusted producers to bring every plate to life.</p>
+        <p>{tr(language, "localPromise")}</p>
       </section>
 
-      <footer><span>MAISON LUCAS</span><p>Please tell your server about any allergies. Prices include applicable taxes.</p><b>{table ? `Ordering for ${table.name}` : "Select your table to begin"}</b></footer>
+      <footer><span>MAISON LUCAS</span><p>{tr(language, "allergyFooter")}</p><b>{table ? `${tr(language, "orderingFor")} ${table.name}` : tr(language, "selectTable")}</b></footer>
 
       {selected && <ItemModal product={selected} language={language} onClose={() => setSelected(null)} onAdd={add} />}
-      {serviceOpen && <Drawer title={`${copy[language].cart} & ${copy[language].myOrder}`} subtitle={table?.name || "No table selected"} onClose={() => setServiceOpen(false)}>
+      {serviceOpen && <Drawer title={`${copy[language].cart} & ${copy[language].myOrder}`} subtitle={table?.name || tr(language, "noTable")} onClose={() => setServiceOpen(false)}>
         <div className="serviceTabs">
           <button className={serviceTab === "cart" ? "active" : ""} onClick={() => setServiceTab("cart")}><Icon name="cart" />{copy[language].cart}<em>{cartCount}</em></button>
           <button className={serviceTab === "orders" ? "active" : ""} onClick={() => { setServiceTab("orders"); loadOrders(); }}><Icon name="receipt" />{copy[language].myOrder}<em>{orders.reduce((sum, order) => sum + order.items.length, 0)}</em></button>
@@ -539,19 +538,19 @@ export default function Home() {
         {serviceTab === "cart" && (!cart.length ? <Empty icon="cart" title={uiCopy[language].emptyCart} text={uiCopy[language].explore} /> :
           <>
             <div className="cartList">{cart.map((item) => <div className="cartItem" key={item.id}>
-              <div><h4>{productName(item)}</h4><p>{money(item.price, language)} each</p></div>
+              <div><h4>{productName(item)}</h4><p>{money(item.price, language)} {tr(language, "each")}</p></div>
               <div className="stepper"><button onClick={() => updateQuantity(item.id, -1)}><Icon name="minus" size={16} /></button><b>{item.quantity}</b><button onClick={() => updateQuantity(item.id, 1)}><Icon name="plus" size={16} /></button></div>
               <strong>{money(item.price * item.quantity, language)}</strong>
             </div>)}</div>
-            <button className="dietAlert" onClick={() => setPreferencesOpen(true)}><Icon name="leaf" /><span><b>Dietary preferences</b><small>{allergies.length ? allergies.join(", ") : "Add allergies or dietary needs"}</small></span><Icon name="chevron" /></button>
-            <div className="courseChoice"><b>Serve these dishes</b><div>{(["ALL_NOW","SHARE","SAME_TIME"] as const).map(value => <button className={courseTiming === value ? "active" : ""} onClick={() => setCourseTiming(value)} key={value}>{value.replace("_"," ")}</button>)}</div></div>
+            <button className="dietAlert" onClick={() => setPreferencesOpen(true)}><Icon name="leaf" /><span><b>{copy[language].dietary}</b><small>{allergies.length ? allergies.map(item => extraCopy[language][item as keyof typeof extraCopy.en] || item).join(", ") : tr(language, "addDietary")}</small></span><Icon name="chevron" /></button>
+            <div className="courseChoice"><b>{tr(language, "serveDishes")}</b><div>{(["ALL_NOW","SHARE","SAME_TIME"] as const).map(value => <button className={courseTiming === value ? "active" : ""} onClick={() => setCourseTiming(value)} key={value}>{tr(language, value === "ALL_NOW" ? "allNow" : value === "SHARE" ? "share" : "sameTime")}</button>)}</div></div>
             <div className="cartFooter"><div><span>{uiCopy[language].total}</span><strong>{money(cartTotal, language)}</strong></div><button className="primaryButton full" disabled={sending} onClick={placeOrder}>{sending ? "..." : uiCopy[language].placeOrder} <Icon name="chevron" /></button></div>
           </>)}
         {serviceTab === "orders" && (!orders.length ? <Empty icon="receipt" title={uiCopy[language].emptyOrder} text={uiCopy[language].emptyOrder} /> :
           <div className="orderList">{orders.flatMap((order) => order.items.map((item) => <div className="orderItem" key={item.id}>
-            <span>{item.quantity}</span><div><h4>{productName(item.product)}</h4><p>{item.note || "No special request"}</p></div><em>{item.status}</em><strong>{money(item.price * item.quantity, language)}</strong>
-          </div>))}<div className="orderTotal"><span>Current total</span><b>{money(orders.reduce((sum, order) => sum + Number(order.totalPrice), 0), language)}</b></div>
-            <button className="primaryButton full" disabled={paymentLoading} onClick={openCheckout}>{paymentLoading ? "Preparing payment..." : copy[language].pay} <Icon name="chevron" /></button>
+            <span>{item.quantity}</span><div><h4>{productName(item.product)}</h4><p>{item.note || tr(language, "noRequest")}</p></div><em>{extraCopy[language][item.status.toLowerCase() as keyof typeof extraCopy.en] || item.status}</em><strong>{money(item.price * item.quantity, language)}</strong>
+          </div>))}<div className="orderTotal"><span>{tr(language, "currentTotal")}</span><b>{money(orders.reduce((sum, order) => sum + Number(order.totalPrice), 0), language)}</b></div>
+            <button className="primaryButton full" disabled={paymentLoading} onClick={openCheckout}>{paymentLoading ? tr(language, "preparingPayment") : copy[language].pay} <Icon name="chevron" /></button>
           </div>)}
       </Drawer>}
 
@@ -562,7 +561,7 @@ export default function Home() {
           setWelcomeOpen(false);
           setPreferencesOpen(true);
         } catch (error) {
-          notify(error instanceof Error ? error.message : "Could not save language.", true);
+          notify(error instanceof Error ? error.message : tr(nextLanguage, "saveLanguageError"), true);
         }
       }} />}
       {checkoutOpen && bill && <CheckoutModal bill={bill} language={language} loading={paymentLoading} onApplyVoucher={applyVoucher} onPay={startPayment} onClose={() => setCheckoutOpen(false)} />}
@@ -573,9 +572,9 @@ export default function Home() {
           setAllergies(items);
           setAllergyAsked(true);
           setPreferencesOpen(false);
-          notify(items.length ? "Allergy alerts are now synchronized with the POS." : "No allergies selected.");
+          notify(items.length ? tr(language, "preferencesSaved") : tr(language, "noAllergiesSelected"));
         } catch (error) {
-          notify(error instanceof Error ? error.message : "Could not save allergy information.", true);
+          notify(error instanceof Error ? error.message : tr(language, "preferenceSaveFailed"), true);
         }
       }} />}
       {toast && <div className={`toast ${toast.error ? "error" : ""}`}><Icon name={toast.error ? "close" : "check"} />{toast.text}</div>}
@@ -592,8 +591,8 @@ function Welcome({ tableName, language, onContinue }: { tableName: string; langu
     <div className="welcomeGlow" />
     <div className="welcomeOrnament"><span>ML</span></div>
     <p className="eyebrow">MAISON LUCAS · {tableName}</p>
-    <h1>{stage === "welcome" ? text.welcome : "Choose your language"}</h1>
-    <p>{stage === "welcome" ? text.welcomeText : "Please choose the language you would like to use for your dining experience."}</p>
+    <h1>{stage === "welcome" ? text.welcome : tr(selectedLanguage, "chooseLanguage")}</h1>
+    <p>{stage === "welcome" ? text.welcomeText : tr(selectedLanguage, "chooseLanguageText")}</p>
     {stage === "language" && <div className="welcomeLanguages">{languages.map(item => <button className={selectedLanguage === item.code ? "active" : ""} key={item.code} onClick={() => setSelectedLanguage(item.code)}>{item.label}</button>)}</div>}
     {stage === "welcome"
       ? <button className="primaryButton" onClick={() => setStage("language")}>{text.continue}<Icon name="chevron" /></button>
@@ -630,7 +629,7 @@ function CheckoutModal({
     try {
       await onApplyVoucher(voucherCode.trim().toUpperCase());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Voucher could not be applied.");
+      setError(cause instanceof Error ? cause.message : tr(language, "voucherError"));
     } finally {
       setApplying(false);
     }
@@ -638,19 +637,19 @@ function CheckoutModal({
   return <div className="overlay checkoutOverlay" onMouseDown={event => event.target === event.currentTarget && onClose()}>
     <section className="checkoutCard">
       <button className="closeButton" onClick={onClose}><Icon name="close" /></button>
-      <p className="eyebrow">TABLE BILL · SECURE CHECKOUT</p>
+      <p className="eyebrow">{tr(language, "secureCheckout")}</p>
       <h2>{text.voucherQuestion}</h2>
       {!voucherDecided ? <div className="voucherChoice">
-        <button onClick={() => { setShowVoucher(true); setVoucherDecided(true); }}>I have a voucher</button>
+        <button onClick={() => { setShowVoucher(true); setVoucherDecided(true); }}>{tr(language, "haveVoucher")}</button>
         <button onClick={() => { setShowVoucher(false); setVoucherDecided(true); }}>{text.noVoucher}</button>
       </div> : showVoucher ? <div className="voucherEntry">
         <input value={voucherCode} onChange={event => setVoucherCode(event.target.value.toUpperCase())} placeholder="DR10001 / FD50002" />
         <button disabled={applying} onClick={apply}>{applying ? "..." : text.apply}</button>
-      </div> : <button className="addVoucherLink" onClick={() => setShowVoucher(true)}>+ Add voucher</button>}
+      </div> : <button className="addVoucherLink" onClick={() => setShowVoucher(true)}>+ {tr(language, "addVoucher")}</button>}
       {error && <p className="checkoutError">{error}</p>}
       <BillBreakdown bill={bill} language={language} amountLabel={text.amountDue} />
       <button className="primaryButton full" disabled={loading} onClick={onPay}>
-        {loading ? "Preparing secure payment..." : text.pay}<Icon name="chevron" />
+        {loading ? tr(language, "preparingSecurePayment") : text.pay}<Icon name="chevron" />
       </button>
     </section>
   </div>;
@@ -658,12 +657,12 @@ function CheckoutModal({
 
 function BillBreakdown({ bill, language, amountLabel }: { bill: BillSnapshot; language: Language; amountLabel: string }) {
   return <div className="billBreakdown">
-    <div><span>Subtotal</span><b>{money(bill.subtotal, language)}</b></div>
-    {bill.voucherDiscountAmount > 0 && <div className="discountLine"><span>Voucher {bill.voucherCode}</span><b>− {money(bill.voucherDiscountAmount, language)}</b></div>}
-    {bill.billDiscountAmount > 0 && <div className="discountLine"><span>Service recovery ({bill.billDiscountPercent}%)<small>{bill.billDiscountReason}</small></span><b>− {money(bill.billDiscountAmount, language)}</b></div>}
-    {bill.foodVatAmount > 0 && <div><span>Food VAT</span><b>{money(bill.foodVatAmount, language)}</b></div>}
-    {bill.alcoholVatAmount > 0 && <div><span>Alcohol VAT</span><b>{money(bill.alcoholVatAmount, language)}</b></div>}
-    {bill.serviceChargeAmount > 0 && <div><span>{bill.serviceChargeName || "Service charge"}</span><b>{money(bill.serviceChargeAmount, language)}</b></div>}
+    <div><span>{tr(language, "subtotal")}</span><b>{money(bill.subtotal, language)}</b></div>
+    {bill.voucherDiscountAmount > 0 && <div className="discountLine"><span>{tr(language, "voucher")} {bill.voucherCode}</span><b>− {money(bill.voucherDiscountAmount, language)}</b></div>}
+    {bill.billDiscountAmount > 0 && <div className="discountLine"><span>{tr(language, "serviceRecovery")} ({bill.billDiscountPercent}%)<small>{bill.billDiscountReason}</small></span><b>− {money(bill.billDiscountAmount, language)}</b></div>}
+    {bill.foodVatAmount > 0 && <div><span>{tr(language, "foodVat")}</span><b>{money(bill.foodVatAmount, language)}</b></div>}
+    {bill.alcoholVatAmount > 0 && <div><span>{tr(language, "alcoholVat")}</span><b>{money(bill.alcoholVatAmount, language)}</b></div>}
+    {bill.serviceChargeAmount > 0 && <div><span>{bill.serviceChargeName || tr(language, "serviceCharge")}</span><b>{money(bill.serviceChargeAmount, language)}</b></div>}
     <div className="billGrandTotal"><span>{amountLabel}</span><b>{money(bill.totalAmount, language)}</b></div>
   </div>;
 }
@@ -673,18 +672,18 @@ function PaymentModal({ payment, language, onClose }: { payment: SePayPayment; l
   const terminal = payment.status === "Failed" || payment.status === "Expired";
   return <div className="overlay paymentOverlay"><section className="paymentCard">
     <button className="closeButton" onClick={onClose}><Icon name="close" /></button>
-    <p className="eyebrow">{paid ? "PAYMENT CONFIRMED" : terminal ? "PAYMENT NOT COMPLETED" : "SECURE BANK TRANSFER"}</p>
-    <h2>{paid ? "Thank you." : terminal ? "Please try again." : "Scan to settle your bill"}</h2>
-    {paid ? <div className="paymentSuccess"><Icon name="check" size={38} /><b>{money(payment.amount, language)}</b><span>Receipt #{payment.receiptId}</span></div> :
-      terminal ? <div className="paymentFailure"><Icon name="close" size={32} /><p>{payment.failureReason || "This payment request is no longer active."}</p></div> :
+    <p className="eyebrow">{paid ? tr(language, "paymentConfirmed") : terminal ? tr(language, "paymentIncomplete") : tr(language, "secureTransfer")}</p>
+    <h2>{paid ? tr(language, "thankYou") : terminal ? tr(language, "tryAgain") : tr(language, "scanToPay")}</h2>
+    {paid ? <div className="paymentSuccess"><Icon name="check" size={38} /><b>{money(payment.amount, language)}</b><span>{tr(language, "receipt")} #{payment.receiptId}</span></div> :
+      terminal ? <div className="paymentFailure"><Icon name="close" size={32} /><p>{payment.failureReason || tr(language, "paymentInactive")}</p></div> :
         <>
           {/* The provider generates this QR dynamically; Next image optimization would cache payment-specific URLs. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="paymentQr" src={payment.qrUrl} alt={`Payment QR for ${payment.reference}`} />
-          <div className="paymentAmount"><span>Amount due</span><b>{money(payment.amount, language)}</b></div>
-          <dl className="paymentDetails"><div><dt>Account</dt><dd>{payment.accountNumber}</dd></div><div><dt>Account name</dt><dd>{payment.accountName}</dd></div><div><dt>Transfer content</dt><dd>{payment.reference}</dd></div></dl>
-          <p className="paymentHint">Transfer the exact amount and keep the content unchanged. This page confirms automatically.</p>
-          <div className="paymentWaiting"><i /> Waiting for payment</div>
+          <div className="paymentAmount"><span>{copy[language].amountDue}</span><b>{money(payment.amount, language)}</b></div>
+          <dl className="paymentDetails"><div><dt>{tr(language, "account")}</dt><dd>{payment.accountNumber}</dd></div><div><dt>{tr(language, "accountName")}</dt><dd>{payment.accountName}</dd></div><div><dt>{tr(language, "transferContent")}</dt><dd>{payment.reference}</dd></div></dl>
+          <p className="paymentHint">{tr(language, "transferHint")}</p>
+          <div className="paymentWaiting"><i /> {tr(language, "waitingPayment")}</div>
         </>}
   </section></div>;
 }
@@ -696,11 +695,11 @@ function ItemModal({ product, language, onClose, onAdd }: { product: Product; la
     <div className="itemModal">
       <button className="closeButton" onClick={onClose}><Icon name="close" /></button>
       <div className="modalImage" style={product.imageUrl ? { backgroundImage: `url("${product.imageUrl}")` } : undefined}><span>✦</span></div>
-      <div className="modalBody"><p className="eyebrow">{product.category?.name || "CHEF'S SELECTION"}</p><h2>{productName(product)}</h2><p>{product.description}</p>
-        {product.remainingQty != null && <div className="remaining"><b>{product.remainingQty}</b><span>portions<br />left today</span></div>}
-        <label>Special request<textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. sauce on the side" /></label>
+      <div className="modalBody"><p className="eyebrow">{categoryName(language, product.category?.name)}</p><h2>{productName(product)}</h2><p>{product.description}</p>
+        {product.remainingQty != null && <div className="remaining"><b>{product.remainingQty}</b><span>{tr(language, "portionsLeft")}</span></div>}
+        <label>{tr(language, "specialRequest")}<textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr(language, "notePlaceholder")} /></label>
         <div className="modalAction"><div className="stepper large"><button onClick={() => setQuantity(Math.max(1, quantity - 1))}><Icon name="minus" /></button><b>{quantity}</b><button onClick={() => setQuantity(Math.min(product.remainingQty ?? 99, quantity + 1))}><Icon name="plus" /></button></div>
-          <button className="primaryButton" onClick={() => onAdd(product, quantity, note)}>Add · {money(product.price * quantity, language)}</button></div>
+          <button className="primaryButton" onClick={() => onAdd(product, quantity, note)}>{tr(language, "add")} · {money(product.price * quantity, language)}</button></div>
       </div>
     </div>
   </div>;
@@ -722,7 +721,7 @@ function Preferences({ language, selected, required, onClose, onSave }: { langua
   return <div className="overlay"><div className="preferences">
     {!required && <button className="closeButton" onClick={onClose}><Icon name="close" /></button>}<span className="preferenceIcon"><Icon name="leaf" size={32} /></span>
     <p className="eyebrow">{copy[language].dietary}</p><h2>{uiCopy[language].allergiesTitle}</h2><p>{uiCopy[language].allergiesText}</p>
-    <div className="choiceGrid">{choices.map((choice) => <button key={choice} className={items.includes(choice) ? "active" : ""} onClick={() => setItems((list) => list.includes(choice) ? list.filter((x) => x !== choice) : [...list, choice])}>{items.includes(choice) && <Icon name="check" size={16} />}{choice}</button>)}</div>
+    <div className="choiceGrid">{choices.map((choice) => <button key={choice} className={items.includes(choice) ? "active" : ""} onClick={() => setItems((list) => list.includes(choice) ? list.filter((x) => x !== choice) : [...list, choice])}>{items.includes(choice) && <Icon name="check" size={16} />}{extraCopy[language][choice as keyof typeof extraCopy.en]}</button>)}</div>
     <button className="primaryButton full" onClick={() => onSave(items)}>{uiCopy[language].save}</button><button className="textButton" onClick={() => onSave([])}>{uiCopy[language].none}</button>
   </div></div>;
 }
@@ -731,6 +730,7 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraError, setCameraError] = useState("");
   const [manualCode, setManualCode] = useState("");
+  const [scanLanguage, setScanLanguage] = useState<Language>("en");
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -774,7 +774,7 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
         };
         scan();
       } catch {
-        setCameraError("Camera access is required to scan your table QR code.");
+        setCameraError(tr(scanLanguage, "cameraRequired"));
       }
     };
     start();
@@ -783,24 +783,27 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
       window.clearTimeout(timer);
       stream?.getTracks().forEach(track => track.stop());
     };
-  }, [onScan]);
+  }, [onScan, scanLanguage]);
 
   return <main className="scannerPage">
     <div className="scannerTheme"><ThemeSwitcher /></div>
     <section className="scannerCard">
+      <select className="scannerLanguage" value={scanLanguage} onChange={event => setScanLanguage(event.target.value as Language)} aria-label={tr(scanLanguage, "chooseLanguage")}>
+        {languages.map(item => <option value={item.code} key={item.code}>{item.label}</option>)}
+      </select>
       <div className="scannerBrand">ML</div>
-      <p className="eyebrow">MAISON LUCAS · TABLE ORDERING</p>
-      <h1>Scan your table</h1>
-      <p>Your table must be opened by our team before the QR can start an ordering session.</p>
+      <p className="eyebrow">MAISON LUCAS · {tr(scanLanguage, "tableOrdering")}</p>
+      <h1>{tr(scanLanguage, "scanTitle")}</h1>
+      <p>{tr(scanLanguage, "scanText")}</p>
       <div className="cameraFrame">
         <video ref={videoRef} muted playsInline />
         <div className="scanCorners" />
-        <span>Place the table QR inside the frame</span>
+        <span>{tr(scanLanguage, "placeQr")}</span>
       </div>
-      {(error || cameraError) && <div className="scanError"><b>{error || cameraError}</b>{error && <button onClick={onRetry}>Scan again</button>}</div>}
+      {(error || cameraError) && <div className="scanError"><b>{error || cameraError}</b>{error && <button onClick={onRetry}>{tr(scanLanguage, "scanAgain")}</button>}</div>}
       <details>
-        <summary>Enter table code manually</summary>
-        <div className="manualQr"><input value={manualCode} onChange={event => setManualCode(event.target.value)} placeholder="Table QR code" /><button onClick={() => manualCode.trim() && onScan(manualCode.trim())}>Join table</button></div>
+        <summary>{tr(scanLanguage, "manualEntry")}</summary>
+        <div className="manualQr"><input value={manualCode} onChange={event => setManualCode(event.target.value)} placeholder={tr(scanLanguage, "tableCode")} /><button onClick={() => manualCode.trim() && onScan(manualCode.trim())}>{tr(scanLanguage, "joinTable")}</button></div>
       </details>
     </section>
   </main>;

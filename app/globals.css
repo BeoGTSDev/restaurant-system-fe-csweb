@@ -1,21 +1,21 @@
 :root {
-  --wine:#518763;
-  --wine2:#3f7053;
-  --gold:#dee892;
-  --ink:#263b2e;
+  --wine:#0d47a1;
+  --wine2:#0a3b88;
+  --gold:#90caf9;
+  --ink:#102a43;
   --paper:#ffffff;
-  --muted:#627466;
-  --mint:#e0eed5;
-  --leaf:#a3db9a;
+  --muted:#6f879c;
+  --mint:#e3f2fd;
+  --leaf:#90caf9;
 }
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }
 body { margin:0; background:var(--paper); color:var(--ink); font-family:"Segoe UI",Arial,sans-serif; }
-.sessionNotice { position:fixed; z-index:120; left:50%; top:18px; transform:translateX(-50%); display:flex; align-items:center; gap:12px; width:min(620px,calc(100vw - 28px)); padding:12px 14px; border:1px solid #a3db9a; border-radius:14px; background:#518763; color:#fff; box-shadow:0 16px 50px #31543d33; }
+.sessionNotice { position:fixed; z-index:120; left:50%; top:18px; transform:translateX(-50%); display:flex; align-items:center; gap:12px; width:min(620px,calc(100vw - 28px)); padding:12px 14px; border:1px solid #90caf9; border-radius:14px; background:#0d47a1; color:#fff; box-shadow:0 16px 50px #0d47a133; }
 .sessionNotice div { display:flex; min-width:0; flex:1; flex-direction:column; }
 .sessionNotice b { font-size:13px; }
-.sessionNotice span { margin-top:2px; color:#e0eed5; font-size:11px; }
-.sessionNotice button { border:0; border-radius:9px; background:#dee892; color:#263b2e; padding:8px 12px; font-weight:700; white-space:nowrap; }
+.sessionNotice span { margin-top:2px; color:#e3f2fd; font-size:11px; }
+.sessionNotice button { border:0; border-radius:9px; background:#90caf9; color:#0b2742; padding:8px 12px; font-weight:700; white-space:nowrap; }
 button,input,textarea,select { font:inherit; }
 button,a { -webkit-tap-highlight-color:transparent; }
 button { color:inherit; }
@@ -87,7 +87,7 @@ h1,h2,h3 { font-family:Georgia,"Times New Roman",serif; }
 .dishBody button:disabled { opacity:.3; cursor:default; }
 .skeleton { height:350px; background:linear-gradient(90deg,#eee8e2,#faf8f4,#eee8e2); background-size:200%; animation:shimmer 1.2s infinite; }
 @keyframes shimmer { to { background-position:-200% 0; } }
-.promise { background:#518763; color:#fff; padding:55px clamp(25px,8vw,125px); display:grid; grid-template-columns:auto 1fr 1fr; align-items:center; gap:25px; }
+.promise { background:#0d47a1; color:#fff; padding:55px clamp(25px,8vw,125px); display:grid; grid-template-columns:auto 1fr 1fr; align-items:center; gap:25px; }
 .promise>svg { color:var(--gold); }
 .promise h2 { max-width:550px; }
 .promise>p { color:#e0eed5; font:14px Georgia; line-height:1.8; max-width:430px; }

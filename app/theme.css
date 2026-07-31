@@ -1,6 +1,6 @@
-:root,[data-theme="light"]{color-scheme:light;--bg-app:#f4f8f0;--bg-surface:#fff;--bg-elevated:#fff;--bg-hover:#eaf3e5;--text-primary:#1f3026;--text-secondary:#415749;--text-muted:#64766a;--text-inverse:#fff;--border-default:#cbd9c9;--border-strong:#91aa95;--overlay:rgba(15,28,19,.66)}
-[data-theme="dark"]{color-scheme:dark;--bg-app:#101b14;--bg-surface:#18271d;--bg-elevated:#203426;--bg-hover:#294331;--text-primary:#f4f8f2;--text-secondary:#c9d8cc;--text-muted:#98ad9e;--text-inverse:#132019;--border-default:#3b5944;--border-strong:#63806b;--overlay:rgba(3,9,5,.78)}
-:root{--action-primary:#518763;--action-hover:#426f51;--success:#26865a;--warning:#a96900;--danger:#c4454d;--info:#2f6f9f;--pending:#64748b;--fired:#b56a00;--cooking:#c65a1e;--pickup:#2878b5;--served:#26865a;--cancelled:#c4454d;--remake:#8256b3;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--radius-sm:6px;--radius-md:10px;--radius-lg:16px;--radius-full:999px;--shadow-md:0 8px 24px rgba(18,38,24,.14);--motion-fast:120ms;--motion-normal:200ms;--z-dropdown:30;--z-sticky:40;--z-modal:70}
+:root,[data-theme="light"]{color-scheme:light;--bg-app:#f5f8fb;--bg-surface:#fff;--bg-elevated:#fff;--bg-hover:#e8f1f8;--text-primary:#132838;--text-secondary:#4c6577;--text-muted:#748a99;--text-inverse:#fff;--border-default:#ccdbe5;--border-strong:#90caf9;--overlay:rgba(4,24,43,.66)}
+[data-theme="dark"]{color-scheme:dark;--bg-app:#08141f;--bg-surface:#111f2c;--bg-elevated:#192c3c;--bg-hover:#21394c;--text-primary:#f3f8fc;--text-secondary:#c2d1dc;--text-muted:#899eae;--text-inverse:#07131f;--border-default:#2e4759;--border-strong:#527c9b;--overlay:rgba(1,8,15,.82)}
+:root{--action-primary:#0d47a1;--action-hover:#0a3b88;--success:#16856b;--warning:#a96900;--danger:#c4454d;--info:#2196f3;--pending:#64748b;--fired:#0d47a1;--cooking:#c65a1e;--pickup:#1976d2;--served:#16856b;--cancelled:#c4454d;--remake:#7655a6;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--radius-sm:6px;--radius-md:10px;--radius-lg:16px;--radius-full:999px;--shadow-md:0 8px 24px rgba(4,36,64,.14);--motion-fast:120ms;--motion-normal:200ms;--z-dropdown:30;--z-sticky:40;--z-modal:70}
 body{background:var(--bg-app);color:var(--text-primary);transition:background var(--motion-normal),color var(--motion-normal)}
 :focus-visible{outline:3px solid var(--info);outline-offset:2px}
 .themeSwitcher{position:relative}.themeButton{width:44px;height:44px;border:1px solid var(--border-default);border-radius:50%;background:var(--bg-surface);color:var(--text-primary);display:grid;place-items:center;cursor:pointer}.themeMenu{position:absolute;right:0;top:calc(100% + 8px);z-index:var(--z-dropdown);min-width:148px;padding:6px;border:1px solid var(--border-default);border-radius:var(--radius-md);background:var(--bg-elevated);box-shadow:var(--shadow-md)}.themeMenu button{width:100%;min-height:40px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--text-primary);text-align:left;padding:0 10px}.themeMenu button[aria-checked=true],.themeMenu button:hover{background:var(--bg-hover)}
@@ -8,4 +8,82 @@ body{background:var(--bg-app);color:var(--text-primary);transition:background va
 [data-theme="dark"] .menuSection,[data-theme="dark"] .drawer,[data-theme="dark"] .itemModal,[data-theme="dark"] .preferences,[data-theme="dark"] .paymentCard{background:var(--bg-app);color:var(--text-primary)}
 [data-theme="dark"] .dishCard,[data-theme="dark"] .cartItem,[data-theme="dark"] .orderItem,[data-theme="dark"] .serviceTabs,[data-theme="dark"] .choiceGrid button,[data-theme="dark"] textarea,[data-theme="dark"] input{background:var(--bg-surface);color:var(--text-primary);border-color:var(--border-default)}
 [data-theme="dark"] .dishBody>p,[data-theme="dark"] .cartItem p,[data-theme="dark"] .orderItem p,[data-theme="dark"] .paymentHint{color:var(--text-muted)}
+
+/* Maison Blue palette: customer surfaces stay airy and food imagery remains the focus. */
+.topbar{background:linear-gradient(110deg,#0d47a1,#1565c0);border-color:rgba(144,202,249,.55);box-shadow:0 8px 24px rgba(13,71,161,.18)}
+.languageSelect{background:#0a3b88;border-color:#90caf9}.languageSelect option{background:#0a3b88}
+.hero{background:radial-gradient(circle at 76% 42%,#e3f2fd 0 4%,#90caf9 25%,#2196f3 52%,#0d47a1 82%)}
+.primaryButton,.cartButton{background:var(--action-primary);border-color:#90caf9}.primaryButton:hover,.cartButton:hover{background:var(--action-hover)}
+.categoryRow button.active,.serviceTabs button.active{background:var(--action-primary);border-color:var(--action-primary);color:#fff}
+.menuSection{background:linear-gradient(180deg,var(--bg-app),color-mix(in srgb,var(--bg-app) 82%,#e3f2fd))}
+.dishCard,.cartItem,.orderItem,.paymentCard,.drawer,.itemModal{border-color:var(--border-default);box-shadow:0 12px 30px rgba(20,54,78,.09),0 2px 6px rgba(20,54,78,.05)}
+.dishCard:hover{box-shadow:0 20px 44px rgba(13,71,161,.15),0 4px 10px rgba(20,54,78,.08)}
+.sectionHeading{border-left:5px solid #2196f3;padding:12px 0 12px 18px;background:linear-gradient(90deg,rgba(33,150,243,.09),transparent 62%)}.sectionHeading h2{color:#0d47a1}.dishCard{border-top:3px solid transparent}.dishCard:hover{border-top-color:#2196f3}
+[data-theme="dark"] .sectionHeading h2{color:#90caf9}[data-theme="dark"] .sectionHeading{background:linear-gradient(90deg,rgba(33,150,243,.14),transparent 62%)}
+[data-theme="dark"] .topbar{background:linear-gradient(110deg,#061727,#0d3153)}
+[data-theme="dark"] .hero{background:radial-gradient(circle at 76% 42%,#153f64 0 5%,#0d3153 34%,#0b2540 65%,#061727 100%)}
+[data-theme="dark"] .categoryRow button,[data-theme="dark"] .serviceTabs button{border-color:var(--border-default);color:var(--text-secondary)}
+[data-theme="dark"] .categoryRow button,[data-theme="dark"] .dishBody button,[data-theme="dark"] .serviceTabs button,[data-theme="dark"] .courseChoice,[data-theme="dark"] .courseChoice button,[data-theme="dark"] .choiceGrid button,[data-theme="dark"] .voucherChoice button,[data-theme="dark"] .voucherEntry input,[data-theme="dark"] .modalBody textarea{background:var(--bg-surface);border-color:var(--border-default);color:var(--text-primary)}
+[data-theme="dark"] .categoryRow button.active,[data-theme="dark"] .serviceTabs button.active,[data-theme="dark"] .courseChoice button.active{background:var(--action-primary);border-color:#64b5f6;color:#fff}
+[data-theme="dark"] .promise{background:#0d3153}[data-theme="dark"] footer{background:#061727;color:var(--text-secondary)}
+[data-theme="dark"] .welcomeScreen,[data-theme="dark"] .scannerPage{background:radial-gradient(circle at 50% 30%,#153f64,#0b2540 48%,#061727 100%)}
+[data-theme="dark"] .billBreakdown>div{color:var(--text-secondary)}
+[data-theme="dark"] .dishCard,[data-theme="dark"] .cartItem,[data-theme="dark"] .orderItem,[data-theme="dark"] .paymentCard,[data-theme="dark"] .drawer,[data-theme="dark"] .itemModal{box-shadow:0 18px 38px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.025)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Customer experience foundation: one type family, clear hierarchy and the Maison blue palette. */
+:root{
+  --font-ui:"Segoe UI Variable","Segoe UI",Inter,Arial,sans-serif;
+  --bg-app:#edf6fc;--bg-surface:#ffffff;--bg-elevated:#f7fbff;--bg-hover:#e3f2fd;
+  --text-primary:#102a43;--text-secondary:#385a73;--text-muted:#678198;
+  --border-default:#c7ddec;--border-strong:#90caf9;
+  --action-primary:#0d47a1;--action-hover:#1565c0;--info:#2196f3;
+}
+[data-theme="dark"]{
+  --bg-app:#061522;--bg-surface:#0d2639;--bg-elevated:#14334a;--bg-hover:#1b425e;
+  --text-primary:#f7fbff;--text-secondary:#c5dced;--text-muted:#91aec3;
+  --border-default:#315771;--border-strong:#64b5f6;--action-primary:#2196f3;--action-hover:#42a5f5;
+}
+html,body,button,input,select,textarea{font-family:var(--font-ui)!important}
+body{font-size:16px;line-height:1.5;background:
+  radial-gradient(circle at 88% 6%,rgba(144,202,249,.28),transparent 24rem),var(--bg-app)}
+h1,h2,h3,h4,p,span,b,strong,small,label,button,input,select,textarea{font-family:var(--font-ui)!important}
+h1{font-size:clamp(2.5rem,6vw,5rem);line-height:1.02;letter-spacing:-.045em}
+h2{font-size:clamp(1.75rem,3.5vw,3rem);line-height:1.1;letter-spacing:-.03em}
+h3{font-size:1.125rem;line-height:1.25}small,.dishBody>p,.cartItem p,.orderItem p{font-size:.875rem;line-height:1.45}
+.eyebrow{font-size:.75rem!important;line-height:1.2;letter-spacing:.16em;font-weight:800}
+
+.topbar{background:linear-gradient(112deg,#0d47a1 0%,#1565c0 60%,#2196f3 100%)!important;color:#fff!important}
+.brand,.topbar nav a,.topbar nav button,.tablePicker,.headerActions{color:#fff!important}
+.languageSelect{background:#083a85!important;color:#fff!important;border-color:rgba(255,255,255,.42)!important}
+.hero{background:
+  radial-gradient(circle at 78% 42%,rgba(255,255,255,.75) 0 3%,rgba(227,242,253,.88) 18%,transparent 38%),
+  linear-gradient(125deg,#0d47a1 0%,#1976d2 52%,#90caf9 100%)!important;color:#fff!important}
+.hero h1,.hero p,.heroPlate p{color:#fff!important;text-shadow:0 2px 16px rgba(4,31,66,.24)}
+.heroPlate .plate{background:linear-gradient(145deg,#fff,#e3f2fd)!important;box-shadow:0 28px 70px rgba(4,31,66,.28)!important}
+.menuSection{background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(227,242,253,.55))!important}
+.dishCard{background:var(--bg-surface)!important;border:1px solid var(--border-default)!important;border-top:4px solid #90caf9!important;box-shadow:0 12px 28px rgba(13,71,161,.1)!important}
+.dishCard:hover{border-top-color:#2196f3!important;transform:translateY(-3px);box-shadow:0 18px 38px rgba(13,71,161,.17)!important}
+.dishBody h3,.cartItem h4,.orderItem h4{color:var(--text-primary)!important}
+.dishBody>p,.cartItem p,.orderItem p{color:var(--text-secondary)!important}
+.categoryRow button{background:var(--bg-surface)!important;color:var(--text-secondary)!important;border-color:var(--border-default)!important}
+.categoryRow button.active{background:#0d47a1!important;color:#fff!important;border-color:#0d47a1!important;box-shadow:0 7px 18px rgba(13,71,161,.22)}
+.promise{background:linear-gradient(120deg,#0d47a1,#1976d2)!important;color:#fff!important}.promise *{color:#fff!important}
+footer{background:#082d62!important;color:#dceeff!important}
+.drawer,.itemModal,.preferences,.checkoutCard,.paymentCard{background:var(--bg-elevated)!important;color:var(--text-primary)!important;border-color:var(--border-default)!important}
+.drawerHead,.serviceTabs,.cartFooter,.orderTotal{background:var(--bg-surface)!important;border-color:var(--border-default)!important}
+.welcomeScreen,.scannerPage{background:
+  radial-gradient(circle at 50% 20%,rgba(144,202,249,.62),transparent 24rem),
+  linear-gradient(145deg,#e3f2fd,#90caf9 48%,#0d47a1)!important}
+.welcomeScreen h1,.welcomeScreen>p,.scannerCard h1,.scannerCard>p{color:#fff!important;text-shadow:0 2px 14px rgba(4,31,66,.28)}
+.scannerCard{position:relative}.scannerLanguage{position:absolute;right:18px;top:18px;min-height:42px;padding:0 36px 0 14px;border:1px solid rgba(255,255,255,.5);border-radius:999px;background:#0d47a1;color:#fff;font-weight:700}
+
+[data-theme="dark"] body{background:radial-gradient(circle at 88% 5%,rgba(33,150,243,.14),transparent 28rem),#061522}
+[data-theme="dark"] .topbar{background:linear-gradient(112deg,#051c33,#0a3760 60%,#0d47a1)!important}
+[data-theme="dark"] .hero{background:radial-gradient(circle at 80% 42%,rgba(100,181,246,.2),transparent 30%),linear-gradient(125deg,#061522,#0a3152 55%,#0d47a1)!important}
+[data-theme="dark"] .menuSection{background:linear-gradient(180deg,#061522,#0a1d2c)!important}
+[data-theme="dark"] .dishCard{background:#0d2639!important;border-color:#315771!important;border-top-color:#1976d2!important;box-shadow:0 14px 30px rgba(0,0,0,.28)!important}
+[data-theme="dark"] .categoryRow button{background:#102b3f!important;color:#c5dced!important;border-color:#315771!important}
+[data-theme="dark"] .categoryRow button.active{background:#1976d2!important;color:#fff!important;border-color:#64b5f6!important}
+[data-theme="dark"] .drawerHead,[data-theme="dark"] .serviceTabs,[data-theme="dark"] .cartFooter,[data-theme="dark"] .orderTotal{background:#0d2639!important}
+[data-theme="dark"] .welcomeScreen,[data-theme="dark"] .scannerPage{background:radial-gradient(circle at 50% 20%,#174d75,#081b2b 52%,#030b12)!important}
