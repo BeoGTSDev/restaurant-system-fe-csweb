@@ -438,7 +438,7 @@ export default function Home() {
       } catch { /* keep polling until the payment expires */ }
     }, 2000);
     return () => window.clearInterval(timer);
-  }, [payment]);
+  }, [language, payment]);
 
   if (!tableSession || !table) {
     return <QrScanner
