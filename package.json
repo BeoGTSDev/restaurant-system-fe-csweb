@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint app"
+    "lint": "eslint app",
+    "test": "node --experimental-strip-types tests/orderRules.test.ts"
   },
   "dependencies": {
     "jsqr": "^1.4.0",

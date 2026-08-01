@@ -4,6 +4,7 @@ import ThemeSwitcher from "./ThemeSwitcher";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { categoryName, extraCopy, tr, type Language } from "./i18n";
+import { displayProductName, formatMoney, isVisibleMenuProduct, menuAvailabilityRank } from "./orderRules";
 
 type Category = { id: number; name: string };
 type Product = {
@@ -58,10 +59,8 @@ type BillSnapshot = {
   totalAmount: number;
 };
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api").replace(/\/$/, "");
-const locales: Record<Language, string> = { en: "en-US", vi: "vi-VN", fr: "fr-FR", zh: "zh-CN", ja: "ja-JP", ko: "ko-KR", th: "th-TH", ru: "ru-RU" };
-const money = (value: number, language: Language = "en") =>
-  new Intl.NumberFormat(locales[language], { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value || 0));
-const productName = (product: Product) => product.displayName || product.name;
+const money = formatMoney;
+const productName = displayProductName;
 const languages: Array<{ code: Language; label: string }> = [
   { code: "th", label: "ไทย" },
   { code: "ru", label: "Русский" },
@@ -286,13 +285,12 @@ export default function Home() {
   }, [tableSession, language]);
 
   const visibleProducts = useMemo(() => products.filter((product) => {
-    if (product.status === "Disabled") return false;
+    if (!isVisibleMenuProduct(product)) return false;
     const matchesCategory = category === "all" || product.categoryId === Number(category);
     const text = `${productName(product)} ${product.description || ""}`.toLowerCase();
     return matchesCategory && text.includes(query.toLowerCase());
   }).sort((a, b) => {
-    const rank = (item: Product) => item.status === "Out of Stock" || item.remainingQty === 0 ? 2 : item.remainingQty != null ? 1 : 0;
-    return rank(a) - rank(b) || productName(a).localeCompare(productName(b));
+    return menuAvailabilityRank(a) - menuAvailabilityRank(b) || productName(a).localeCompare(productName(b));
   }), [products, category, query]);
 
   const matchingAllergies = useCallback((product: Product) => {
