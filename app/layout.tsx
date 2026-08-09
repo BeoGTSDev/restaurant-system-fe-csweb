@@ -1,5 +1,5 @@
 // Root layout shared by every page in this web app.
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./theme.css";
 import { ThemeProvider } from "./ThemeProvider";
@@ -7,6 +7,14 @@ import { ThemeProvider } from "./ThemeProvider";
 export const metadata: Metadata = {
   title: "Maison Lucas · Order at your table",
   description: "Browse the menu and order directly from your table.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#0d47a1",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
