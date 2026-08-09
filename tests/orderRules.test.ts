@@ -1,3 +1,4 @@
+// Test file: checks orderRules.test behavior and protects it from later changes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {

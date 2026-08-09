@@ -1,3 +1,4 @@
+// Web support code used by the main page.
 export type Language = "en" | "vi" | "fr" | "zh" | "ja" | "ko" | "th" | "ru";
 
 const en = {

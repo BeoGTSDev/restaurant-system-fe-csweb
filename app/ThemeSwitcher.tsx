@@ -1,4 +1,5 @@
 "use client";
+// Web support code used by the main page.
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "./ThemeProvider";
 
@@ -7,6 +8,7 @@ export default function ThemeSwitcher() {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    // Function: removes, closes, or resets close and returns its result to the caller.
     const close = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);

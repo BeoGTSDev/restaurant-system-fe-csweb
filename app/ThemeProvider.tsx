@@ -1,4 +1,5 @@
 "use client";
+// Web support code used by the main page.
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type Theme = "system" | "light" | "dark";
@@ -17,6 +18,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
   useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: dark)");
+    // Function: changes and saves apply and returns its result to the caller.
     const apply = () => {
       const resolved = theme === "system" ? (media.matches ? "dark" : "light") : theme;
       document.documentElement.dataset.theme = resolved;
@@ -26,6 +28,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     apply(); media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
   }, [theme]);
+  // Function: changes and saves set theme and returns its result to the caller.
   const setTheme = (value: Theme) => { localStorage.setItem(key, value); setThemeState(value); };
   const value = useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

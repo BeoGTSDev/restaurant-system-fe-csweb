@@ -1,3 +1,5 @@
+// Web support code used by the main page.
+// Small customer display rules live here so they are easy to test; backend rules are final.
 import type { Language } from "./i18n";
 
 export type MenuProduct = {

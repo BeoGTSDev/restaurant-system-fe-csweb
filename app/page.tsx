@@ -1,4 +1,6 @@
 "use client";
+// Main web page: owns screen state and calls the backend.
+// Guest flow: QR session -> menu -> order -> bill -> SePay request -> verified status polling.
 import ThemeSwitcher from "./ThemeSwitcher";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -92,6 +94,7 @@ const uiCopy: Record<Language, Record<string, string>> = {
   ru: { hero: "Проведите спокойный вечер в Maison Lucas.", heroText: "Сезонные блюда, тщательно приготовленные и поданные в тёплой атмосфере с французским настроением.", explore: "Открыть меню", choose: "Выберите любимые блюда", search: "Найти блюдо...", all: "Все блюда", promise: "Хорошее блюдо начинается с хороших ингредиентов.", emptyCart: "Корзина пуста", emptyOrder: "Активных заказов нет", placeOrder: "Отправить заказ", total: "Итого", allergiesTitle: "Позвольте нам позаботиться о вас.", allergiesText: "Выберите все пищевые аллергии. Информация будет синхронизирована с POS.", save: "Сохранить аллергии", none: "Нет известных пищевых аллергий" },
 };
 
+// Screen action: runs the icon step. It reads page state, may call the backend, and updates the UI state.
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const paths: Record<string, React.ReactNode> = {
     search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.7-3.7" /></>,
@@ -136,6 +139,7 @@ export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
 
+  // Screen action: runs the notify step. It reads page state, may call the backend, and updates the UI state.
   const notify = (text: string, error = false) => {
     setToast({ text, error });
     window.setTimeout(() => setToast(null), 3500);
@@ -258,6 +262,7 @@ export default function Home() {
   useEffect(() => {
     if (!tableSession) return;
     let timer = 0;
+    // Screen action: runs the expire step. It reads page state, may call the backend, and updates the UI state.
     const expire = () => {
       setTableSession("");
       setTable(null);
@@ -271,6 +276,7 @@ export default function Home() {
       window.history.replaceState({}, "", window.location.pathname);
       setSessionError(copy[language].timeout);
     };
+    // Screen action: removes, closes, or resets reset. It reads page state, may call the backend, and updates the UI state.
     const reset = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(expire, 5 * 60 * 1000);
@@ -314,6 +320,7 @@ export default function Home() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+  // Screen action: creates or starts add. It reads page state, may call the backend, and updates the UI state.
   const add = (product: Product, quantity = 1, note = "") => {
     if (product.status !== "In Stock" || product.remainingQty === 0) {
       notify(`${productName(product)} · ${tr(language, "soldOutToday")}`, true);
@@ -334,6 +341,7 @@ export default function Home() {
     notify(`${tr(language, "add")}: ${productName(product)}`);
   };
 
+  // Screen action: changes and saves update quantity. It reads page state, may call the backend, and updates the UI state.
   const updateQuantity = (id: number, delta: number) => {
     setCart((current) => current.flatMap((item) => {
       if (item.id !== id) return [item];
@@ -347,6 +355,7 @@ export default function Home() {
     }));
   };
 
+  // Screen action: runs the place order step. It reads page state, may call the backend, and updates the UI state.
   const placeOrder = async () => {
     if (!tableId || !tableSession) return notify(tr(language, "scanBeforeOrder"), true);
     if (!cart.length) return;
@@ -379,6 +388,7 @@ export default function Home() {
     }
   };
 
+  // Screen action: creates or starts start payment. It reads page state, may call the backend, and updates the UI state.
   const startPayment = async () => {
     if (!tableSession) return notify(tr(language, "scanBeforePay"), true);
     setPaymentLoading(true);
@@ -398,6 +408,7 @@ export default function Home() {
     }
   };
 
+  // Screen action: creates or starts open checkout. It reads page state, may call the backend, and updates the UI state.
   const openCheckout = async () => {
     try {
       await loadBill();
@@ -408,6 +419,7 @@ export default function Home() {
     }
   };
 
+  // Screen action: changes and saves apply voucher. It reads page state, may call the backend, and updates the UI state.
   const applyVoucher = async (code: string) => {
     const response = await fetch(`${API_BASE}/payments/customer/voucher`, {
       method: "POST",
@@ -580,6 +592,7 @@ export default function Home() {
   );
 }
 
+// Screen action: runs the welcome step. It reads page state, may call the backend, and updates the UI state.
 function Welcome({ tableName, language, onContinue }: { tableName: string; language: Language; onContinue: (language: Language) => Promise<void> }) {
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const [stage, setStage] = useState<"welcome" | "language">("welcome");
@@ -599,6 +612,7 @@ function Welcome({ tableName, language, onContinue }: { tableName: string; langu
   </div>;
 }
 
+// Screen action: checks checkout modal and returns a safe yes/no result. It reads page state, may call the backend, and updates the UI state.
 function CheckoutModal({
   bill,
   language,
@@ -620,6 +634,7 @@ function CheckoutModal({
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState("");
   const text = copy[language];
+  // Screen action: changes and saves apply. It reads page state, may call the backend, and updates the UI state.
   const apply = async () => {
     if (!voucherCode.trim()) return;
     setApplying(true);
@@ -653,6 +668,7 @@ function CheckoutModal({
   </div>;
 }
 
+// Screen action: runs the bill breakdown step. It reads page state, may call the backend, and updates the UI state.
 function BillBreakdown({ bill, language, amountLabel }: { bill: BillSnapshot; language: Language; amountLabel: string }) {
   return <div className="billBreakdown">
     <div><span>{tr(language, "subtotal")}</span><b>{money(bill.subtotal, language)}</b></div>
@@ -665,6 +681,7 @@ function BillBreakdown({ bill, language, amountLabel }: { bill: BillSnapshot; la
   </div>;
 }
 
+// Screen action: runs the payment modal step. It reads page state, may call the backend, and updates the UI state.
 function PaymentModal({ payment, language, onClose }: { payment: SePayPayment; language: Language; onClose: () => void }) {
   const paid = payment.status === "Paid";
   const terminal = payment.status === "Failed" || payment.status === "Expired";
@@ -686,6 +703,7 @@ function PaymentModal({ payment, language, onClose }: { payment: SePayPayment; l
   </section></div>;
 }
 
+// Screen action: runs the item modal step. It reads page state, may call the backend, and updates the UI state.
 function ItemModal({ product, language, onClose, onAdd }: { product: Product; language: Language; onClose: () => void; onAdd: (p: Product, q: number, note: string) => void }) {
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState("");
@@ -703,16 +721,19 @@ function ItemModal({ product, language, onClose, onAdd }: { product: Product; la
   </div>;
 }
 
+// Screen action: runs the drawer step. It reads page state, may call the backend, and updates the UI state.
 function Drawer({ title, subtitle, onClose, children }: { title: string; subtitle: string; onClose: () => void; children: React.ReactNode }) {
   return <div className="overlay drawerOverlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><aside className="drawer">
     <div className="drawerHead"><div><p>{subtitle}</p><h2>{title}</h2></div><button className="closeButton" onClick={onClose}><Icon name="close" /></button></div>{children}
   </aside></div>;
 }
 
+// Screen action: runs the empty step. It reads page state, may call the backend, and updates the UI state.
 function Empty({ icon, title, text }: { icon: string; title: string; text: string }) {
   return <div className="empty"><span><Icon name={icon} size={32} /></span><h3>{title}</h3><p>{text}</p></div>;
 }
 
+// Screen action: runs the preferences step. It reads page state, may call the backend, and updates the UI state.
 function Preferences({ language, selected, required, onClose, onSave }: { language: Language; selected: string[]; required?: boolean; onClose: () => void; onSave: (items: string[]) => void | Promise<void> }) {
   const choices = ["Dairy", "Gluten", "Peanuts", "Tree nuts", "Shellfish", "Fish", "Eggs", "Soy", "Sesame", "Mustard", "Celery", "Sulphites"];
   const [items, setItems] = useState(selected);
@@ -724,6 +745,7 @@ function Preferences({ language, selected, required, onClose, onSave }: { langua
   </div></div>;
 }
 
+// Screen action: runs the qr scanner step. It reads page state, may call the backend, and updates the UI state.
 function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: string) => void; onRetry: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraError, setCameraError] = useState("");
@@ -734,6 +756,7 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
     let stream: MediaStream | null = null;
     let timer = 0;
     let stopped = false;
+    // Screen action: creates or starts start. It reads page state, may call the backend, and updates the UI state.
     const start = async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
@@ -741,10 +764,12 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
+        // Screen action: runs the detector step. It reads page state, may call the backend, and updates the UI state.
         const Detector = (window as unknown as { BarcodeDetector?: new (options: { formats: string[] }) => { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
         const detector = Detector ? new Detector({ formats: ["qr_code"] }) : null;
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d", { willReadFrequently: true });
+        // Screen action: runs the scan step. It reads page state, may call the backend, and updates the UI state.
         const scan = async () => {
           if (stopped || !videoRef.current) return;
           try {
