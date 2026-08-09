@@ -60,7 +60,10 @@ type BillSnapshot = {
   serviceChargeName?: string | null;
   totalAmount: number;
 };
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api").replace(/\/$/, "");
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://restaurant-system-backend-production-ac28.up.railway.app/api"
+).replace(/\/$/, "");
 const money = formatMoney;
 const productName = displayProductName;
 const languages: Array<{ code: Language; label: string }> = [

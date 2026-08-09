@@ -8,14 +8,16 @@ const ThemeContext = createContext<ThemeValue | null>(null);
 const key = "restaurant-ui-theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "system";
+  // Keep the first client render identical to SSR; the inline layout script
+  // already applies the visual theme before React hydrates.
+  const [theme, setThemeState] = useState<Theme>("system");
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  useEffect(() => {
     const stored = localStorage.getItem(key);
-    return stored === "system" || stored === "light" || stored === "dark" ? stored : "system";
-  });
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() =>
-    typeof window !== "undefined" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-  );
+    if (stored === "system" || stored === "light" || stored === "dark") {
+      queueMicrotask(() => setThemeState(stored));
+    }
+  }, []);
   useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: dark)");
     // Function: changes and saves apply and returns its result to the caller.
