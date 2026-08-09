@@ -63,7 +63,9 @@ type BillSnapshot = {
 const API_BASE = (
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "https://restaurant-system-backend-production-ac28.up.railway.app/api"
-).replace(/\/$/, "");
+)
+  .replace(/^NEXT_PUBLIC_API_BASE_URL=/, "")
+  .replace(/\/$/, "");
 const money = formatMoney;
 const productName = displayProductName;
 const languages: Array<{ code: Language; label: string }> = [
@@ -754,6 +756,8 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
   const [cameraError, setCameraError] = useState("");
   const [manualCode, setManualCode] = useState("");
   const [scanLanguage, setScanLanguage] = useState<Language>("en");
+  const [cameraAttempt, setCameraAttempt] = useState(0);
+  const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -809,7 +813,16 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
       window.clearTimeout(timer);
       stream?.getTracks().forEach(track => track.stop());
     };
-  }, [onScan, scanLanguage]);
+  }, [onScan, scanLanguage, cameraAttempt]);
+
+  const retryScan = () => {
+    setCameraError("");
+    setManualOpen(false);
+    onRetry();
+    setCameraAttempt(value => value + 1);
+  };
+
+  const scanIssue = error || cameraError;
 
   return <main className="scannerPage">
     <div className="scannerTheme"><ThemeSwitcher /></div>
@@ -826,11 +839,19 @@ function QrScanner({ error, onScan, onRetry }: { error: string; onScan: (value: 
         <div className="scanCorners" />
         <span>{tr(scanLanguage, "placeQr")}</span>
       </div>
-      {(error || cameraError) && <div className="scanError"><b>{error || cameraError}</b>{error && <button onClick={onRetry}>{tr(scanLanguage, "scanAgain")}</button>}</div>}
-      <details>
-        <summary>{tr(scanLanguage, "manualEntry")}</summary>
-        <div className="manualQr"><input value={manualCode} onChange={event => setManualCode(event.target.value)} placeholder={tr(scanLanguage, "tableCode")} /><button onClick={() => manualCode.trim() && onScan(manualCode.trim())}>{tr(scanLanguage, "joinTable")}</button></div>
-      </details>
+      <button className="manualEntryButton" type="button" onClick={() => setManualOpen(value => !value)}>{tr(scanLanguage, "manualEntry")}</button>
+      {manualOpen && <div className="manualQr"><input value={manualCode} onChange={event => setManualCode(event.target.value)} placeholder={tr(scanLanguage, "tableCode")} /><button onClick={() => manualCode.trim() && onScan(manualCode.trim())}>{tr(scanLanguage, "joinTable")}</button></div>}
     </section>
+    {scanIssue && <div className="scanIssueOverlay" role="presentation">
+      <section className="scanIssueDialog" role="alertdialog" aria-modal="true">
+        <span className="scanIssueIcon">!</span>
+        <p className="eyebrow">MAISON LUCAS</p>
+        <h2>{scanIssue}</h2>
+        <div>
+          <button type="button" className="scanRetryButton" onClick={retryScan}>{tr(scanLanguage, "scanAgain")}</button>
+          <button type="button" className="scanManualButton" onClick={() => { setCameraError(""); onRetry(); setManualOpen(true); }}>{tr(scanLanguage, "manualEntry")}</button>
+        </div>
+      </section>
+    </div>}
   </main>;
 }

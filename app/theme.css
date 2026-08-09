@@ -141,3 +141,106 @@ button,select,input,textarea{min-width:0}button{touch-action:manipulation}
   .toast{left:var(--mobile-gutter);right:var(--mobile-gutter);bottom:calc(14px + env(safe-area-inset-bottom));width:auto;transform:none;border-radius:14px;line-height:1.35}.sessionNotice{top:max(10px,env(safe-area-inset-top));align-items:flex-start;gap:8px}
 }
 @media(max-width:360px){.brand b{display:none}.languageSelect{width:58px;max-width:58px}.dishCard{grid-template-columns:102px minmax(0,1fr)}.choiceGrid,.welcomeLanguages{grid-template-columns:1fr}.modalAction{grid-template-columns:1fr}.modalAction .stepper{width:136px}}
+
+/* Balanced mobile QR entry: one viewport, one primary task, centered errors. */
+.scannerPage{
+  position:relative;
+  min-height:100dvh;
+  padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.scannerCard{
+  width:min(420px,100%);
+  max-height:calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+.scannerLanguage{
+  position:absolute;
+  top:max(18px,env(safe-area-inset-top));
+  right:76px;
+  width:132px;
+  min-height:42px;
+  margin:0;
+}
+.scannerBrand{width:44px;height:44px;margin:0 auto 10px;font-size:12px}
+.scannerCard .eyebrow{margin:0;font-size:10px;letter-spacing:2px}
+.scannerCard h1{margin:7px 0 5px;font-size:clamp(30px,8vw,42px);line-height:1.05}
+.scannerCard>p:not(.eyebrow){margin:0 auto 14px;max-width:330px;font-size:13px;line-height:1.45}
+.cameraFrame{
+  width:min(100%,380px);
+  height:auto;
+  max-height:none;
+  aspect-ratio:1/1;
+  flex:0 1 auto;
+  border:1px solid rgba(255,255,255,.3);
+  border-radius:20px;
+  box-shadow:0 18px 48px rgba(8,45,98,.24);
+}
+.scanCorners{inset:14%;border-radius:18px}
+.cameraFrame>span{left:14px;right:14px;bottom:12px;padding:8px 10px;font-size:11px}
+.manualEntryButton{
+  width:min(100%,380px);
+  min-height:44px;
+  margin-top:12px;
+  border:1px solid rgba(255,255,255,.45);
+  border-radius:12px;
+  background:rgba(8,45,98,.28);
+  color:#fff;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.manualQr{width:min(100%,380px);margin-top:8px}
+.scanIssueOverlay{
+  position:fixed;
+  inset:0;
+  z-index:3000;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  background:rgba(3,22,43,.68);
+  backdrop-filter:blur(8px);
+}
+.scanIssueDialog{
+  width:min(360px,100%);
+  padding:28px 22px 22px;
+  border:1px solid rgba(144,202,249,.65);
+  border-radius:22px;
+  background:var(--bg-elevated);
+  color:var(--text-primary);
+  text-align:center;
+  box-shadow:0 26px 80px rgba(3,22,43,.38);
+}
+.scanIssueIcon{width:54px;height:54px;margin:0 auto 14px;display:grid;place-items:center;border-radius:50%;background:#fff3e0;color:#d46b00;font-size:28px;font-weight:900}
+.scanIssueDialog .eyebrow{margin:0;color:#1976d2;font-size:9px;letter-spacing:2px}
+.scanIssueDialog h2{margin:8px 0 22px;color:var(--text-primary);font:700 19px/1.35 system-ui,sans-serif;overflow-wrap:anywhere}
+.scanIssueDialog>div{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.scanIssueDialog button{min-height:46px;border-radius:12px;font-size:12px;font-weight:850;cursor:pointer}
+.scanRetryButton{border:0;background:#0d47a1;color:#fff}
+.scanManualButton{border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-primary)}
+
+@media(max-width:620px){
+  .scannerPage{padding:max(68px,calc(env(safe-area-inset-top) + 54px)) 16px max(12px,env(safe-area-inset-bottom))}
+  .scannerTheme{top:max(12px,env(safe-area-inset-top));right:16px}
+  .scannerLanguage{position:absolute;top:max(12px,env(safe-area-inset-top));right:72px;width:126px;min-height:44px;margin:0}
+  .scannerCard{max-width:390px;max-height:calc(100dvh - 82px - env(safe-area-inset-bottom))}
+  .scannerBrand{display:none}
+  .scannerCard h1{font-size:34px}
+  .cameraFrame{width:min(100%,360px);aspect-ratio:1/1}
+  .manualQr{grid-template-columns:minmax(0,1fr) auto}
+  .manualQr input{min-width:0}.manualQr button{width:auto;padding-inline:14px}
+}
+
+@media(max-height:720px) and (max-width:620px){
+  .scannerCard .eyebrow{display:none}
+  .scannerCard h1{font-size:29px;margin-top:0}
+  .scannerCard>p:not(.eyebrow){margin-bottom:8px;font-size:12px}
+  .cameraFrame{width:min(100%,52dvh)}
+  .manualEntryButton{margin-top:8px;min-height:40px}
+}
